@@ -1,5 +1,13 @@
 # Dorf Helper
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple)
+![Game: Dorfromantik](https://img.shields.io/badge/game-Dorfromantik-6a9f4c)
+![BepInEx 5](https://img.shields.io/badge/BepInEx-5.4.23-orange)
+![Unity 2021.3 (Mono)](https://img.shields.io/badge/Unity-2021.3%20Mono-black?logo=unity)
+![.NET Framework 4.7.2](https://img.shields.io/badge/.NET-net472-512BD4?logo=dotnet)
+![Challenges completed: 8](https://img.shields.io/badge/challenges%20completed-8-success)
+
 A BepInEx mod for **Dorfromantik** (Steam, macOS) that suggests where to place each tile, and can play on its own
 (auto mode) to chase the game's challenges.
 
