@@ -1,6 +1,46 @@
 # Dorf Helper
 
-Mod BepInEx pour Dorfromantik (macOS) qui suggère où placer les tuiles.
+Mod BepInEx pour Dorfromantik (macOS) qui suggère où placer les tuiles, et peut jouer seul (mode auto).
+
+## Résultats
+
+Tous obtenus en mode Classique, avec les règles normales du jeu (aucune modification de la configuration,
+du rythme ou des sauvegardes), le bot jouant en mode auto avec relance automatique.
+
+### Défis validés
+
+| Défi (quête de session) | Objectif | Comment |
+|---|---|---|
+| Océan I | former un groupe d'eau de 100 segments | objectif de biome « former » |
+| Ingénierie (paliers 50 et 75) | former un réseau ferré de 50, puis 75 segments | objectif de biome « former » |
+| Village I | former un village de 250 maisons | objectif de biome « former » |
+| Main verte (1000 puis 1500) | former une forêt de 1000, puis 1500 arbres | objectif de biome, croissance normalisée par segment |
+| Autosuffisance I | fermer 50 groupes de champs d'au moins 10 champs (cumulé) | mode « plusieurs groupes » |
+| Planification I | 7 placements parfaits d'un coup | fleur planifiée (centre + 6 + 12 cases) |
+| Analyste V | 550 points en une seule pose | fleur + quête au centre |
+| **Analyste VI** | **660 points en une seule pose** | **750 points** : fleur + réservation de quêtes |
+
+### Analyste VI : le coup gagnant
+
+- 15ᵉ essai de la dernière série (v0.24.0), 145ᵉ tuile de la partie ; environ 30 essais au total depuis la v0.20.
+- Pose au centre de la fleur : 5 placements parfaits (300) + 5 raccords (50) + **4 quêtes réussies d'un coup** (400)
+  = **750 points**, et +25 tuiles. Aucune tuile ne pouvait coller aux 6 bords (7 parfaits impossibles), mais
+  5 quêtes réservées touchaient le centre. Le modèle avait prédit ces 750 points exactement.
+- Règles de points du mode Classique (lues en jeu) : 10 par bord qui colle, 60 par placement parfait,
+  100 par quête, 50 par drapeau, rien pour la fermeture d'un groupe.
+
+### Mode « durer »
+
+- Record : **1033 tuiles posées, 67 080 points** en une partie (objectif initial : 250 tuiles ;
+  record manuel précédent : 17 630 points).
+
+### Fiabilité du modèle (dernière série)
+
+| Vérification | Résultat |
+|---|---|
+| Poses (bords et valeur des quêtes, juste avant chaque pose) | 4 422 / 4 422 |
+| Tuiles gagnées | 4 419 / 4 421 |
+| Points de la pose | 4 392 / 4 420 (99,4 %) |
 
 ## Installation de BepInEx (déjà faite)
 
