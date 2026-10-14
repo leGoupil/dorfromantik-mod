@@ -27,8 +27,13 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CACHE_DIR="$REPO_DIR/vendor"
+# Standalone package (e.g. the release zip): DorfHelper.dll next to this script is installed as is.
+LOCAL_DLL=""
+[ -f "$SCRIPT_DIR/DorfHelper.dll" ] && [ ! -f "$REPO_DIR/src/DorfHelper/DorfHelper.csproj" ] && LOCAL_DLL="$SCRIPT_DIR/DorfHelper.dll"
+[ -n "$LOCAL_DLL" ] && CACHE_DIR="$SCRIPT_DIR/vendor"
 APP="$GAME_DIR/Dorfromantik.app"
 
 step() { printf '\n==> %s\n' "$*"; }
@@ -37,7 +42,9 @@ fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 [ -d "$APP" ] || fail "Dorfromantik.app not found in: $GAME_DIR (use --game-dir)"
 command -v curl >/dev/null || fail "curl is required"
 command -v unzip >/dev/null || fail "unzip is required"
-if [ "$SKIP_BUILD" = 0 ] && [ "$PREBUILT" = 0 ] && ! command -v dotnet >/dev/null; then
+if [ -n "$LOCAL_DLL" ]; then
+    PREBUILT=1
+elif [ "$SKIP_BUILD" = 0 ] && [ "$PREBUILT" = 0 ] && ! command -v dotnet >/dev/null; then
     echo "The .NET SDK is not installed: the prebuilt plugin will be downloaded from the latest release."
     PREBUILT=1
 fi
@@ -82,7 +89,10 @@ else
     printf '\n[Chainloader]\n\nHideManagerGameObject = true\n' >> "$CFG"
 fi
 
-if [ "$SKIP_BUILD" = 0 ] && [ "$PREBUILT" = 1 ]; then
+if [ "$SKIP_BUILD" = 0 ] && [ -n "$LOCAL_DLL" ]; then
+    step "Installing the bundled Dorf Helper plugin"
+    cp "$LOCAL_DLL" "$GAME_DIR/BepInEx/plugins/DorfHelper.dll"
+elif [ "$SKIP_BUILD" = 0 ] && [ "$PREBUILT" = 1 ]; then
     step "Downloading the prebuilt Dorf Helper plugin (latest release)"
     curl -fsSL -o "$GAME_DIR/BepInEx/plugins/DorfHelper.dll" "$RELEASE_DLL_URL" \
         || fail "could not download $RELEASE_DLL_URL"

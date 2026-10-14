@@ -85,6 +85,10 @@ No .NET SDK? Use the prebuilt plugin from the [latest release](https://github.co
 tools/install.sh --prebuilt
 ```
 
+Without cloning the repo: download `DorfHelper-<version>.zip` from the
+[latest release](https://github.com/leGoupil/dorfromantik-mod/releases/latest), unzip it and run `./install.sh` from
+that folder (it installs the bundled `DorfHelper.dll`; `./uninstall.sh` removes everything).
+
 The script:
 1. downloads BepInEx 5.4.23.5 (macOS) and the full Mono/Unity 2021.3.45 libraries (the game ships stripped ones),
    cached in `vendor/`;

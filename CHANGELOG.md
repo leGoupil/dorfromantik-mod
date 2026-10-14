@@ -10,6 +10,7 @@ the public repository and are summarized from the development history.
 - `tools/install.sh`: local install (BepInEx 5, full Mono/Unity libraries, launcher and BepInEx config, plugin build
   or prebuilt download).
 - `tools/uninstall.sh`: removes BepInEx and the mod from the game folder.
+- Release zip (`DorfHelper-<version>.zip`): prebuilt plugin with the install and uninstall scripts, no clone needed.
 - MIT license.
 
 ## 0.24.0
