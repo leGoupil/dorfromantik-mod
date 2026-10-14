@@ -208,3 +208,10 @@ Key game classes: `TilePlacer` (tile in hand, rotation, placement), `TileSlotPre
 (the stack), `World` (placed tiles), `Tile.GetEdgeTypes` (edge types), `QuestManager` / `QuestConditionWatcher`
 (quests), `RewardSystem` / `RewardSystemConfiguration` (scoring), `SessionQuest*` / `Challenge_*` (challenges),
 `AutoPlacer` (a developer debug tool that evaluates every slot × rotation).
+
+## License
+
+The mod's code is released under the [MIT License](LICENSE).
+
+Dorfromantik is a game by Toukana Interactive. This is an unofficial fan project, not affiliated with or endorsed by
+Toukana Interactive; it contains none of the game's code or assets, and the game is required to use it.
