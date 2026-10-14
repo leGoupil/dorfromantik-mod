@@ -4,6 +4,8 @@
 #   tools/install.sh                      # default Steam location
 #   tools/install.sh --game-dir "/path/to/Dorfromantik"
 #   tools/install.sh --skip-build         # set up BepInEx only
+#   tools/install.sh --prebuilt           # download the plugin from the latest GitHub release instead of building it
+#                                         # (automatic when the .NET SDK is not installed)
 #
 # Safe to run again: files are overwritten, game files themselves are never modified.
 set -euo pipefail
@@ -13,11 +15,14 @@ UNITY_VERSION="2021.3.45"   # the game ships Unity 2021.3.45f2
 
 GAME_DIR="${DORFROMANTIK_DIR:-$HOME/Library/Application Support/Steam/steamapps/common/Dorfromantik}"
 SKIP_BUILD=0
+PREBUILT=0
+RELEASE_DLL_URL="https://github.com/leGoupil/dorfromantik-mod/releases/latest/download/DorfHelper.dll"
 while [ $# -gt 0 ]; do
     case "$1" in
         --game-dir) GAME_DIR="$2"; shift 2 ;;
         --skip-build) SKIP_BUILD=1; shift ;;
-        -h|--help) sed -n '2,8p' "$0"; exit 0 ;;
+        --prebuilt) PREBUILT=1; shift ;;
+        -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -32,8 +37,9 @@ fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 [ -d "$APP" ] || fail "Dorfromantik.app not found in: $GAME_DIR (use --game-dir)"
 command -v curl >/dev/null || fail "curl is required"
 command -v unzip >/dev/null || fail "unzip is required"
-if [ "$SKIP_BUILD" = 0 ]; then
-    command -v dotnet >/dev/null || fail ".NET SDK is required to build the plugin (https://dotnet.microsoft.com/download)"
+if [ "$SKIP_BUILD" = 0 ] && [ "$PREBUILT" = 0 ] && ! command -v dotnet >/dev/null; then
+    echo "The .NET SDK is not installed: the prebuilt plugin will be downloaded from the latest release."
+    PREBUILT=1
 fi
 
 mkdir -p "$CACHE_DIR"
@@ -76,7 +82,11 @@ else
     printf '\n[Chainloader]\n\nHideManagerGameObject = true\n' >> "$CFG"
 fi
 
-if [ "$SKIP_BUILD" = 0 ]; then
+if [ "$SKIP_BUILD" = 0 ] && [ "$PREBUILT" = 1 ]; then
+    step "Downloading the prebuilt Dorf Helper plugin (latest release)"
+    curl -fsSL -o "$GAME_DIR/BepInEx/plugins/DorfHelper.dll" "$RELEASE_DLL_URL" \
+        || fail "could not download $RELEASE_DLL_URL"
+elif [ "$SKIP_BUILD" = 0 ]; then
     step "Building and installing the Dorf Helper plugin"
     dotnet build -c Release "$REPO_DIR/src/DorfHelper/DorfHelper.csproj" -p:GameDir="$GAME_DIR" -nologo -v quiet
     [ -f "$GAME_DIR/BepInEx/plugins/DorfHelper.dll" ] || fail "build succeeded but DorfHelper.dll was not copied to BepInEx/plugins"

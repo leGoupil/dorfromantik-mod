@@ -78,13 +78,20 @@ If the game is not in the default Steam location, pass it explicitly:
 tools/install.sh --game-dir "/path/to/steamapps/common/Dorfromantik"
 ```
 
+No .NET SDK? Use the prebuilt plugin from the [latest release](https://github.com/leGoupil/dorfromantik-mod/releases/latest)
+(this is also what the script does automatically when `dotnet` is not installed):
+
+```bash
+tools/install.sh --prebuilt
+```
+
 The script:
 1. downloads BepInEx 5.4.23.5 (macOS) and the full Mono/Unity 2021.3.45 libraries (the game ships stripped ones),
    cached in `vendor/`;
 2. installs BepInEx next to `Dorfromantik.app` and the full libraries in `BepInEx/unstripped_corlib/`;
 3. configures `run_bepinex.sh` (game executable, full libraries first, Rosetta) and `BepInEx.cfg`
    (`HideManagerGameObject = true`);
-4. builds the plugin and copies it to `BepInEx/plugins/`;
+4. builds the plugin (or downloads the prebuilt one) into `BepInEx/plugins/`;
 5. prints the Steam launch option to use.
 
 It never modifies the game's own files and can be run again safely.
@@ -114,8 +121,15 @@ It never modifies the game's own files and can be run again safely.
 
 ### Uninstall
 
-Clear the Steam launch option: the game runs unmodded again. To remove everything, delete `BepInEx/`,
-`libdoorstop.dylib`, `.doorstop_version` and `run_bepinex.sh` from the game folder.
+To play the unmodded game again, just clear the Steam launch option. To remove everything:
+
+```bash
+tools/uninstall.sh                # asks for confirmation; --yes to skip it
+tools/uninstall.sh --keep-data    # keep the mod's config and recorded tiles/quests
+```
+
+It removes only what the installer added (`BepInEx/`, `libdoorstop.dylib`, `.doorstop_version`, `run_bepinex.sh`,
+BepInEx's `changelog.txt`). Then clear the Steam launch option.
 
 ### Optional: UnityExplorer
 
@@ -216,6 +230,10 @@ Key game classes: `TilePlacer` (tile in hand, rotation, placement), `TileSlotPre
 (the stack), `World` (placed tiles), `Tile.GetEdgeTypes` (edge types), `QuestManager` / `QuestConditionWatcher`
 (quests), `RewardSystem` / `RewardSystemConfiguration` (scoring), `SessionQuest*` / `Challenge_*` (challenges),
 `AutoPlacer` (a developer debug tool that evaluates every slot × rotation).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
