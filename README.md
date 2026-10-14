@@ -1,182 +1,210 @@
 # Dorf Helper
 
-Mod BepInEx pour Dorfromantik (macOS) qui suggère où placer les tuiles, et peut jouer seul (mode auto).
+A BepInEx mod for **Dorfromantik** (Steam, macOS) that suggests where to place each tile, and can play on its own
+(auto mode) to chase the game's challenges.
 
-## Résultats
+It reads the live game state, rebuilds it as a pure model (tiles, segments, groups, quests, scoring), evaluates every
+possible placement (with lookahead on the visible tiles) and shows the best ones on the board. The model is checked
+against the game before every placement.
 
-Tous obtenus en mode Classique, avec les règles normales du jeu (aucune modification de la configuration,
-du rythme ou des sauvegardes), le bot jouant en mode auto avec relance automatique.
+> This repository contains only the mod's own code. The game's decompiled code and binaries are never committed.
 
-### Défis validés
+## Results
 
-| Défi (quête de session) | Objectif | Comment |
+All obtained in Classic mode with the game's normal rules (no config, speed or save manipulation), the bot playing
+in auto mode with automatic restarts.
+
+### Challenges completed
+
+| Challenge (session quest) | Requirement | How |
 |---|---|---|
-| Océan I | former un groupe d'eau de 100 segments | objectif de biome « former » |
-| Ingénierie (paliers 50 et 75) | former un réseau ferré de 50, puis 75 segments | objectif de biome « former » |
-| Village I | former un village de 250 maisons | objectif de biome « former » |
-| Main verte (1000 puis 1500) | former une forêt de 1000, puis 1500 arbres | objectif de biome, croissance normalisée par segment |
-| Autosuffisance I | fermer 50 groupes de champs d'au moins 10 champs (cumulé) | mode « plusieurs groupes » |
-| Planification I | 7 placements parfaits d'un coup | fleur planifiée (centre + 6 + 12 cases) |
-| Analyste V | 550 points en une seule pose | fleur + quête au centre |
-| **Analyste VI** | **660 points en une seule pose** | **750 points** : fleur + réservation de quêtes |
+| Ocean I | form a water group of 100 segments | biome goal, "form" |
+| Engineering (50 and 75) | form a railway of 50, then 75 segments | biome goal, "form" |
+| Village I | form a village of 250 houses | biome goal, "form" |
+| Green thumb (1000 then 1500) | form a forest of 1000, then 1500 trees | biome goal, growth normalized per segment |
+| Self-sufficiency I | close 50 field groups of at least 10 fields (cumulative) | "many groups" mode |
+| Planning I | 7 perfect placements at once | planned "flower" (center + 6 + 12 cells) |
+| Analyst V | 550 points in a single placement | flower + a quest at the center |
+| **Analyst VI** | **660 points in a single placement** | **750 points**: flower + quest reservation |
 
-### Analyste VI : le coup gagnant
+### Analyst VI: the winning move
 
-- 15ᵉ essai de la dernière série (v0.24.0), 145ᵉ tuile de la partie ; environ 30 essais au total depuis la v0.20.
-- Pose au centre de la fleur : 5 placements parfaits (300) + 5 raccords (50) + **4 quêtes réussies d'un coup** (400)
-  = **750 points**, et +25 tuiles. Aucune tuile ne pouvait coller aux 6 bords (7 parfaits impossibles), mais
-  5 quêtes réservées touchaient le centre. Le modèle avait prédit ces 750 points exactement.
-- Règles de points du mode Classique (lues en jeu) : 10 par bord qui colle, 60 par placement parfait,
-  100 par quête, 50 par drapeau, rien pour la fermeture d'un groupe.
+- 15th attempt of the last series (v0.24.0), 145th tile of the game; about 30 attempts in total since v0.20.
+- Placed at the flower's center: 5 perfect placements (300) + 5 matching edges (50) + **4 quests completed at once**
+  (400) = **750 points**, and +25 tiles. No tile could match all 6 edges (7 perfects impossible), but 5 reserved quests
+  touched the center. The model had predicted those 750 points exactly.
+- Classic mode scoring (read from the game): 10 per matching edge, 60 per perfect placement, 100 per quest,
+  50 per flag, nothing for closing a group.
 
-### Mode « durer »
+### Endurance ("Compact" objective)
 
-- Record : **1033 tuiles posées, 67 080 points** en une partie (objectif initial : 250 tuiles ;
-  record manuel précédent : 17 630 points).
+- Best game: **1033 tiles placed, 67,080 points** (initial goal: 250 tiles; previous manual best: 17,630 points).
 
-### Fiabilité du modèle (dernière série)
+### Model accuracy (last series)
 
-| Vérification | Résultat |
+| Check | Result |
 |---|---|
-| Poses (bords et valeur des quêtes, juste avant chaque pose) | 4 422 / 4 422 |
-| Tuiles gagnées | 4 419 / 4 421 |
-| Points de la pose | 4 392 / 4 420 (99,4 %) |
+| Placements (edges and quest values, right before each placement) | 4,422 / 4,422 |
+| Tiles gained | 4,419 / 4,421 |
+| Points of the placement | 4,392 / 4,420 (99.4%) |
 
-## Installation de BepInEx (déjà faite)
+## Installation
 
-Dans `~/Library/Application Support/Steam/steamapps/common/Dorfromantik/` :
+### Requirements
 
-- BepInEx 5.4.23.5 (`BepInEx_macos_universal`) : `BepInEx/`, `libdoorstop.dylib`, `.doorstop_version`, `run_bepinex.sh`
-- `run_bepinex.sh` modifié :
-  - `executable_name="Dorfromantik.app"`
-  - `dll_search_path_override="BepInEx/unstripped_corlib"` : le `mscorlib` du jeu est allégé par Unity,
-    on fournit celui d'Unity 2021.3.45 (https://unity.bepinex.dev/corlibs/2021.3.45.zip)
-  - `ARCHPREFERENCE="x86_64,arm64"` : Harmony/MonoMod de BepInEx 5 ne gère pas arm64, le jeu tourne sous Rosetta
+- Dorfromantik from **Steam on macOS** (tested with Unity 2021.3.45f2, Mono build, Apple Silicon and Intel).
+- The **.NET SDK** (8 or later) to build the plugin: <https://dotnet.microsoft.com/download>.
+- `curl` and `unzip` (built into macOS).
 
-Option de lancement Steam (Propriétés > Général > Options de lancement) :
+### Quick install
 
-    "/Users/lphilippe/Library/Application Support/Steam/steamapps/common/Dorfromantik/run_bepinex.sh" %command%
+```bash
+git clone https://github.com/leGoupil/dorfromantik-mod.git
+cd dorfromantik-mod
+tools/install.sh
+```
 
-Désinstaller : vider l'option de lancement Steam (le jeu redevient vanilla), ou supprimer les fichiers listés ci-dessus.
+If the game is not in the default Steam location, pass it explicitly:
 
-## UnityExplorer
+```bash
+tools/install.sh --game-dir "/path/to/steamapps/common/Dorfromantik"
+```
 
-Inspecteur de scène en jeu (fork maintenu : https://github.com/yukieiji/UnityExplorer, v4.13.6, build BepInEx5.Mono),
-installé dans `BepInEx/plugins/sinai-dev-UnityExplorer/`. Touche **F7** (fn+F7 sur Mac).
+The script:
+1. downloads BepInEx 5.4.23.5 (macOS) and the full Mono/Unity 2021.3.45 libraries (the game ships stripped ones),
+   cached in `vendor/`;
+2. installs BepInEx next to `Dorfromantik.app` and the full libraries in `BepInEx/unstripped_corlib/`;
+3. configures `run_bepinex.sh` (game executable, full libraries first, Rosetta) and `BepInEx.cfg`
+   (`HideManagerGameObject = true`);
+4. builds the plugin and copies it to `BepInEx/plugins/`;
+5. prints the Steam launch option to use.
 
-Le jeu livre des DLL Unity allégées (stripping) : UnityExplorer a besoin des versions complètes, placées dans
-`BepInEx/unstripped_corlib/` (prioritaire grâce à `dll_search_path_override`) :
-- `UnityEngine*.dll` : copiés depuis l'éditeur Unity 2021.3.45f1
-  (`PlaybackEngines/MacStandaloneSupport/Variations/mono/Managed`)
-- `UnityEngine.UI.dll` : recompilé depuis les sources uGUI de l'éditeur, voir `tools/ugui-build/`
-  (`dotnet build -c Release`)
-Config : `BepInEx/config/com.sinai.unityexplorer.cfg`.
+It never modifies the game's own files and can be run again safely.
 
-## Développement
+**Last step, in Steam**: Dorfromantik > Properties > General > Launch options:
 
-    cd src/DorfHelper && dotnet build -c Release
+```
+"<game folder>/run_bepinex.sh" %command%
+```
 
-Le DLL est copié automatiquement dans `BepInEx/plugins/`. Logs : `.../Dorfromantik/BepInEx/LogOutput.log`.
+### Manual install (what the script does)
 
-## Décompilation
+1. Extract [`BepInEx_macos_universal_5.4.23.5.zip`](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5)
+   into the game folder (next to `Dorfromantik.app`).
+2. Extract <https://unity.bepinex.dev/corlibs/2021.3.45.zip> and <https://unity.bepinex.dev/libraries/2021.3.45.zip>
+   into `BepInEx/unstripped_corlib/`.
+3. In `run_bepinex.sh`, set:
+   - `executable_name="Dorfromantik.app"`
+   - `dll_search_path_override="BepInEx/unstripped_corlib"` — the game's `mscorlib`/`UnityEngine` are stripped;
+   - `export ARCHPREFERENCE="x86_64,arm64"` — BepInEx 5's Harmony/MonoMod has no arm64 support, so the game runs
+     under Rosetta.
+4. In `BepInEx/config/BepInEx.cfg`, section `[Chainloader]`: `HideManagerGameObject = true` (otherwise the game
+   destroys the plugin when a game scene loads).
+5. Build: `dotnet build -c Release src/DorfHelper/DorfHelper.csproj` (copies `DorfHelper.dll` to `BepInEx/plugins/`;
+   override the game location with `-p:GameDir=...`).
+6. Set the Steam launch option above.
 
-    DOTNET_ROLL_FORWARD=Major dotnet ilspycmd -p -o decompiled/Assembly-CSharp \
-      -r "<Managed>" "<Managed>/Assembly-CSharp.dll"
+### Uninstall
 
-(`decompiled/` est ignoré par git : c'est le code du jeu, à ne pas redistribuer.)
+Clear the Steam launch option: the game runs unmodded again. To remove everything, delete `BepInEx/`,
+`libdoorstop.dylib`, `.doorstop_version` and `run_bepinex.sh` from the game folder.
 
-Classes clés :
-- `TilePlacer` : tuile en main (`CurrentTile`), rotation, pose ; événement `OnNewPreviewTileSet`
-- `TileSlotPreviewer.AllValidTileSlots` : cases où la tuile peut être posée
-- `TileStack` : pioche (`Height`, `GetStackedTile(i)`)
-- `World` : tuiles posées (`GetTile(gridPos)`, `GetAllPlacedTiles()`)
-- `Tile.GetEdgeTypes(dir, Space)` : types de bord (`GroupTypeId` : Village, Forest, Agriculture, TrainTracks, Water ; liste vide = prairie)
-- `QuestManager.AllQuestWatchers` / `QuestConditionWatcher` : quêtes, cible, valeur courante, statut
-- `TileFitter` : règles d'emboîtement
-- `AutoPlacer` : outil de debug des devs qui évalue chaque case × rotation (bords parfaits + simulation des quêtes)
+### Optional: UnityExplorer
 
-## Snapshots
+An in-game scene inspector ([maintained fork](https://github.com/yukieiji/UnityExplorer), BepInEx5.Mono build),
+toggled with **F7**. It needs a non-stripped `UnityEngine.UI.dll`, which is not available for download: build it
+from the uGUI sources of a local Unity 2021.3.45f1 editor with `tools/ugui-build` (`dotnet build -c Release`), then
+copy it, together with the editor's `PlaybackEngines/MacStandaloneSupport/Variations/mono/Managed/UnityEngine*.dll`,
+into `BepInEx/unstripped_corlib/`.
 
-À chaque nouvelle tuile en main, le mod écrit l'état du jeu dans
-`.../Dorfromantik/BepInEx/DorfHelper/snapshots.jsonl`.
+## Usage
 
-## Solveur (v0.4)
+On Mac, F keys may need **fn**.
 
-- `Model/Board.cs` : modèle pur du plateau (cases, segments, groupes en union-find, bords ouverts, quêtes).
-  Reproduit les règles du jeu : un bord de segment est ouvert tant qu'aucune tuile ne le touche ; deux segments
-  du même type face à face fusionnent ; une quête de comptage échoue si son groupe se ferme trop tôt
-  ou si une quête « exactement » est dépassée.
-- `Model/Snapshotter.cs` : construit le modèle depuis la partie (sans la tuile d'aperçu, qui fusionne les groupes).
-- Tuiles gagnées (règles de `RewardSystem`) : placement parfait (6 côtés occupés, 6 bords qui collent) = +2 tuiles,
-  y compris pour une voisine dont la pose complète le 6ᵉ côté ; quête réussie = `questRewardByScore(score)` tuiles.
-  Les modes « durer » maximisent ces tuiles gagnées ; le log « Vérif tuiles gagnées » compare prédiction et réalité.
-- Tuiles probables : tirées parmi les 80 dernières tuiles posées (le jeu ne tire le terrain d'une tuile que quand
-  elle devient visible, seules les 2 suivantes sont connues). Plusieurs tirages, communs à tous les candidats,
-  moyennés ; leur nombre s'adapte à un budget d'environ 1,5 s.
-- `Solver.cs` : note chaque pose (bords + effet exact sur les quêtes), puis pour les 10 meilleures,
-  joue les tuiles suivantes de la pioche « au mieux » (glouton, actualisation 0.85). Tourne en arrière-plan.
-- Auto-vérification (log « Vérif pose » / « Vérif modèle ») : juste avant chaque pose (crochet Harmony sur
-  `TilePlacer.PlaceCurrentTile`) et à chaque survol, le modèle est comparé au jeu (bords et valeur des quêtes).
-- Quêtes de la tuile en main : modélisées via `QuestModel.HandSegs`, elles deviennent des quêtes normales une fois posées.
-- Limite connue : les tuiles adaptatives (qui changent de forme selon leurs voisins) sont vues avec leur forme au moment de la photo.
-
-| Touche (fn+ sur Mac) | Action |
+| Key | Action |
 |---|---|
-| Ctrl+Cmd (maintenus) | Comme F5, verrouillé tant qu'on tient ; clic = poser ; rappui = suggestion suivante ; en gardant les touches, la suggestion suivante s'affiche après chaque pose |
-| F5 | Place l'aperçu sur la suggestion suivante (1 → 2 → 3) avec la bonne rotation, centre la caméra et verrouille l'aperçu (clic = poser, bouger la souris = déverrouiller) |
-| F6 | Pose la tuile sur la suggestion affichée |
-| F4 | Anticipation : aucune / 2 visibles (défaut) / 2 visibles + 5 probables / 2 visibles + 10 probables |
-| F8 | Objectif : score / quêtes / durer / score sans bord raté / durer sans bord raté |
-| F9 | Masque/affiche l'overlay |
-| F10 | Mode auto : pose la meilleure suggestion à chaque tuile (pause pendant les menus/récompenses) |
-| F2 | Relance automatique on/off : en mode auto, nouvelle partie (même mode de jeu) 8 s après une fin de partie tant que le défi choisi n'est pas réussi |
-| F3 | Objectif de biome : aucun → défis « grand groupe » du jeu non accomplis → objectif perso (config) → aucun |
+| Ctrl+Cmd (held) | Preview the best suggestion and lock it while held; click to place; press again for the next one |
+| F5 | Preview the next suggestion (1 → 2 → 3) with the right rotation and center the camera; click or F6 to place |
+| F6 | Place the tile on the shown suggestion |
+| F4 | Lookahead: none / 2 visible tiles (default) / + 5 probable / + 10 probable |
+| F8 | Objective: score / quests / compact (endurance) / score without mismatches / compact without mismatches |
+| F3 | Challenge: none → the game's unfinished challenges (one entry per remaining level) → custom goal → none |
+| F10 | Auto mode: places the best suggestion for every tile (pauses during menus and reward screens) |
+| F2 | Auto restart: in auto mode, starts a new game (same game mode) when one ends without completing the challenge |
+| F9 | Hide/show the overlay |
 
-Le mod est compilé contre les DLL Unity complètes de `BepInEx/unstripped_corlib` (IMGUI pour l'overlay).
+The overlay (bottom center by default) shows the objective, the suggestions (score, edges, gains) and, when a
+challenge is selected, a dedicated card with its progress and a confidence estimate.
 
-## Objectif de biome (v0.12)
+Settings are saved in `BepInEx/config/fr.lphilippe.dorfhelper.cfg` (objective, lookahead, chosen challenge,
+custom goal, auto restart, fail early, panel position). Logs: `BepInEx/LogOutput.log`.
 
-F3 propose les défis du jeu (quêtes de session `CloseBigGroup` / `FormBigGroup` non accomplies, lus via
-`SessionQuestWatcher`) avec leurs règles exactes (fermer ou former, éléments ou segments), puis l'objectif perso.
+## How it works
 
-Ex. « fermer un champ de 150 champs » (config `[Objectif de biome]` : `Terrain = Agriculture`, `Element = Field`, `Cible = 150`).
-- Cible : le groupe ouvert du terrain avec le meilleur compromis taille × perspectives, conservé tant qu'il est ouvert
-  (sauf s'il est piégé et qu'un autre est nettement plus prometteur).
-- Phase 1 (croissance) : bonus par élément ajouté, pénalité par bord ouvert perdu sans croissance, pénalité forte si
-  le groupe est fermé avant la cible, prise en compte des perspectives (part des tuiles capables de prolonger chaque bord).
-- Phase 2 (fermeture) : bonus par bord refermé, gros bonus quand le groupe est fermé.
-- Dosage par la réserve : bonus coupés sous 15 tuiles en pioche, plein régime à partir de 40 (survie d'abord) ;
-  les protections du groupe (ne pas le fermer, ne pas lui retirer de bords) restent toujours actives.
-- Croissance normalisée par segment (moyenne d'éléments par segment du terrain) : une tuile de forêt porte beaucoup
-  d'arbres, sans normalisation l'objectif forêt écrasait la survie.
-- Défis « plusieurs groupes » (`CloseManyGroups` / `FormManyGroups`, ex. 50 champs fermés d'au moins 10 champs,
-  progression cumulée entre parties) : prime par groupe fermé assez grand, croissance plafonnée à la taille cible
-  (fusionner deux groupes déjà assez grands est pénalisé), bonus de fermeture une fois la taille atteinte.
-  Simulateur : `--many Agriculture:Field:10` → ~2,4 groupes fermés pour 100 tuiles (contre 0,5 sans le mode).
+- **`Model/Board.cs`** — pure board model: hex grid, tile segments merged into groups (union-find), open edges,
+  quests, perfect placements, tiles gained, points. Reproduces the game's rules (a segment edge is open until any
+  tile touches it; facing segments of the same type merge; a count quest fails if its group closes too early or an
+  "exactly" quest is exceeded).
+- **`Model/Snapshotter.cs`** — builds the model from the running game (excluding the preview tile, which merges
+  groups) and reads the game's scoring configuration.
+- **`Solver.cs`** — scores every placement of the tile in hand, then plays the visible next tiles greedily
+  (optionally probable tiles drawn from those already seen) and keeps the best sequence. Runs in the background.
+- **Self-checks** — right before every placement (Harmony hook on `TilePlacer.PlaceCurrentTile`), the model's
+  prediction (edges, quest values, tiles gained, points) is compared with the game.
+- **Challenges** (`GoalCatalog.cs`) — read from the game's session quests:
+  - *form / close a big group* (`FormBigGroup`, `CloseBigGroup`): grow the most promising open group while protecting
+    its open edges, then close it if required;
+  - *many groups* (`CloseManyGroups`, `FormManyGroups`): many medium groups, growth capped at the required size;
+  - *perfect placements at once* (`Challenge_PerfectPlacementsAtOnce`): plan a "flower" — a center cell left empty,
+    an inner ring of 6 and an outer ring of 12 matching tiles — then place a tile matching all 6 center edges;
+  - *points in one placement* (`Challenge_ScorePerPlacement`): when closing groups scores points, grow a group and close
+    it at once; otherwise (Classic mode) build a flower, reserve the quests touching its center and only place the
+    center tile when it reaches the target.
+- **Auto mode** — places the best suggestion, restarts finished games, and can abandon unpromising games early
+  (flower challenges); stalled flowers are replaced by a new site.
 
-## Simulateur (`tools/sim`)
+Known limitation: adaptive tiles (that change shape depending on their neighbors) are modeled with the shape they
+have when the snapshot is taken.
 
-Rejoue des parties avec le modèle et le solveur du mod, sur les tuiles et quêtes enregistrées en jeu
+## Development
+
+```bash
+dotnet build -c Release src/DorfHelper/DorfHelper.csproj   # builds and installs the plugin
+```
+
+Restart the game to load a new build.
+
+### Simulator (`tools/sim`)
+
+Replays full games offline with the mod's model and solver, using tiles and quests recorded in-game
 (`BepInEx/DorfHelper/tiles.jsonl`, `quests.jsonl`).
 
-    cd tools/sim && dotnet run -c Release -- --games 30 --objective Compact,CompactClean --quest-scale 0.4
-    dotnet run -c Release -- --games 20 --objective Compact --goal Agriculture:Field:150
-    dotnet run -c Release -- --games 20 --objective Compact --goal TrainTracks::80        # segments
-    dotnet run -c Release -- --games 20 --objective Compact --goal Water::100:form       # former sans fermer
+```bash
+cd tools/sim
+dotnet run -c Release -- --games 30 --objective Compact,CompactClean --quest-scale 0.4
+dotnet run -c Release -- --games 20 --objective Compact --goal Agriculture:Field:150
+dotnet run -c Release -- --games 20 --objective Compact --goal TrainTracks::80        # segments
+dotnet run -c Release -- --games 20 --objective Compact --goal Water::100:form       # form without closing
+dotnet run -c Release -- --games 12 --objective Compact --atonce perfect:7
+dotnet run -c Release -- --games 12 --objective Compact --atonce points:660
+```
 
-Options : `--depth`, `--stack`, `--max`, `--seed`, `--quest-scale` (calibrage de la difficulté des quêtes),
-`--goal-grow/-loss/-prospect/-close/-min-stack/-full-stack`, `--verbose 1`.
+Options: `--depth`, `--stack`, `--max`, `--seed`, `--quest-scale` (quest difficulty calibration), `--fit-mod`,
+`--group-points`, `--goal-grow/-loss/-prospect/-close/-min-stack/-full-stack`, `--many-*`, `--flower`,
+`--flower-quest`, `--reserve`, `--verbose 1`.
 
-## Défis « d'un coup » (v0.13)
+### Decompiling the game (for development only)
 
-- D — `Challenge_PerfectPlacementsAtOnce` (ex. 7 placements parfaits d'un coup) : il faut une « fleur », un trou dont
-  les 6 voisines sont complètes sauf lui avec tous leurs bords qui collent, puis une tuile qui colle sur ses 6 bords.
-  Planification (v0.14) : choix d'un site (centre C, anneau intérieur 6, anneau extérieur 12) maximisant
-  avancement × √(chance de remplir chaque position manquante × chance de trouver la tuile du centre) ; bonus par
-  progression, forte pénalité si une pose gâche le site (raccord raté, centre occupé trop tôt). Simulateur :
-  ~1 partie sur 3 réussit les 7 placements parfaits d'un coup en 500 tuiles (contre 0 sans planification).
-- E — `Challenge_ScorePerPlacement` (ex. 660 points en une pose). Points d'une pose (`PlacementEval.Points`) :
-  raccords (2/bord), placements parfaits (60 chacun), fermeture de groupes (3 × (segments − 1)^1,2), quêtes (100).
-  Stratégie : faire grossir le plus grand groupe ouvert jusqu'à la taille dont la fermeture rapporte la cible
-  (~91 segments pour 660), puis le fermer. Le log « Vérif points » compare prédiction et réalité.
-- Simulateur : `--atonce perfect:7`, `--atonce points:660`.
+```bash
+dotnet tool restore
+DOTNET_ROLL_FORWARD=Major dotnet ilspycmd -p -o decompiled/Assembly-CSharp \
+  -r "<Managed>" "<Managed>/Assembly-CSharp.dll"
+```
+
+`<Managed>` is `Dorfromantik.app/Contents/Resources/Data/Managed`. `decompiled/` is git-ignored: it is the game's
+code and must not be redistributed.
+
+Key game classes: `TilePlacer` (tile in hand, rotation, placement), `TileSlotPreviewer` (valid slots), `TileStack`
+(the stack), `World` (placed tiles), `Tile.GetEdgeTypes` (edge types), `QuestManager` / `QuestConditionWatcher`
+(quests), `RewardSystem` / `RewardSystemConfiguration` (scoring), `SessionQuest*` / `Challenge_*` (challenges),
+`AutoPlacer` (a developer debug tool that evaluates every slot × rotation).

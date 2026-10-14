@@ -7,7 +7,7 @@ using DorfHelper.Model;
 
 namespace DorfSim
 {
-    /// <summary>Une tuile enregistrée par le mod, prête à être convertie en TileSpec.</summary>
+    /// <summary>A tile recorded by the mod, ready to be converted into a TileSpec.</summary>
     internal sealed class RecordedTile
     {
         public string Name;
@@ -17,7 +17,7 @@ namespace DorfSim
         public bool[] Hybrid = new bool[6];
         public List<(int type, int[] edges, Dictionary<string, int> elements)> Segs = new List<(int, int[], Dictionary<string, int>)>();
 
-        /// <summary>Type de terrain dominant (pour choisir la quête d'une tuile de quête).</summary>
+        /// <summary>Dominant terrain type (used to pick the quest for a quest tile).</summary>
         public int MainType => Segs.Count == 0 ? 0 : Segs.GroupBy(s => s.type).OrderByDescending(g => g.Sum(s => s.edges.Length)).First().Key;
     }
 
@@ -28,9 +28,9 @@ namespace DorfSim
         public int Group;
         public int Target;
         public string Element;
-        public int Reference = -1; // taille du groupe de référence quand la quête a été vue (-1 : inconnue)
+        public int Reference = -1; // size of the reference group when the quest was seen (-1: unknown)
 
-        /// <summary>Incrément demandé au-delà du groupe de référence.</summary>
+        /// <summary>Increment required beyond the reference group.</summary>
         public int Increment => Reference >= 0 && Target > Reference ? Target - Reference : -1;
     }
 
@@ -45,8 +45,8 @@ namespace DorfSim
         public string Source;
 
         /// <summary>
-        /// Charge tiles.jsonl / quests.jsonl (enregistrés par le mod). À défaut, se rabat sur snapshots.jsonl
-        /// (bords seulement : un segment par suite de bords de même type, sans éléments ni quêtes).
+        /// Loads tiles.jsonl / quests.jsonl (recorded by the mod). Otherwise falls back to snapshots.jsonl
+        /// (edges only: one segment per run of same-type edges, no elements or quests).
         /// </summary>
         public static Dataset Load(string dir)
         {
@@ -62,8 +62,8 @@ namespace DorfSim
             }
             else
             {
-                ds.Source = "snapshots.jsonl (bords seulement)";
-                ds.Constraining[3] = ds.Constraining[4] = true; // rails et rivières
+                ds.Source = "snapshots.jsonl (edges only)";
+                ds.Constraining[3] = ds.Constraining[4] = true; // tracks and rivers
                 var seen = new HashSet<string>();
                 foreach (string line in File.ReadLines(Path.Combine(dir, "snapshots.jsonl")))
                 {
@@ -124,7 +124,7 @@ namespace DorfSim
                 t.NonHybrid[i] = t.Any[i];
                 i++;
             }
-            // Un segment par suite de bords consécutifs partageant un type
+            // One segment per run of consecutive edges sharing a type
             for (int type = 0; type < Board.TypeCount; type++)
             {
                 bool[] has = Enumerable.Range(0, 6).Select(d => t.Any[d].Contains(type)).ToArray();

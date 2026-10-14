@@ -8,8 +8,8 @@ using UnityEngine;
 namespace DorfHelper
 {
     /// <summary>
-    /// Enregistre les tuiles tirées (contenu complet : bords, segments, éléments) et les quêtes rencontrées,
-    /// pour alimenter le simulateur hors jeu (tools/sim). Fichiers dans BepInEx/DorfHelper/.
+    /// Records drawn tiles (full content: edges, segments, elements) and encountered quests,
+    /// to feed the offline simulator (tools/sim). Files go in BepInEx/DorfHelper/.
     /// </summary>
     internal class DataRecorder
     {
@@ -24,7 +24,7 @@ namespace DorfHelper
             questsPath = Path.Combine(dir, "quests.jsonl");
         }
 
-        /// <summary>Tuile tirée (en main) : c'est la distribution réelle des tirages.</summary>
+        /// <summary>Drawn tile (in hand): this gives the actual draw distribution.</summary>
         public void RecordDrawnTile(Tile tile)
         {
             if (!tile || !recordedTiles.Add(tile.GetInstanceID())) return;
@@ -34,11 +34,11 @@ namespace DorfHelper
             }
             catch (Exception e)
             {
-                Plugin.Log.LogWarning("Enregistrement de tuile impossible : " + e.Message);
+                Plugin.Log.LogWarning("Failed to record tile: " + e.Message);
             }
         }
 
-        /// <summary>Quêtes actives : type, terrain, comparaison et cible (pour générer des quêtes réalistes).</summary>
+        /// <summary>Active quests: type, terrain, comparison and target (to generate realistic quests).</summary>
         public void RecordQuests(IEnumerable<QuestWatcher> watchers, QuestManager questManager)
         {
             foreach (QuestWatcher q in watchers)
@@ -50,7 +50,7 @@ namespace DorfHelper
                     if (c == null) continue;
                     string key = q.GetInstanceID() + "/" + cw.TargetValue;
                     if (!recordedQuests.Add(key)) continue;
-                    // Référence du jeu au moment où l'on voit la quête : objectif ≈ référence + incrément
+                    // Game reference value when the quest is first seen: target ≈ reference + increment
                     QuestTile questTile = q.GetComponentInParent<QuestTile>() ?? q.QuestTile;
                     int reference = -1;
                     try { if (questTile && questManager) reference = questManager.ReferenceGroupCount(c, questTile); } catch (Exception) { }
@@ -68,7 +68,7 @@ namespace DorfHelper
                 }
                 catch (Exception e)
                 {
-                    Plugin.Log.LogWarning("Enregistrement de quête impossible : " + e.Message);
+                    Plugin.Log.LogWarning("Failed to record quest: " + e.Message);
                 }
             }
         }

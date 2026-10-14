@@ -6,7 +6,7 @@
     <Nullable>disable</Nullable>
     <GameDir>$(HOME)/Library/Application Support/Steam/steamapps/common/Dorfromantik</GameDir>
     <ManagedDir>$(GameDir)/Dorfromantik.app/Contents/Resources/Data/Managed</ManagedDir>
-    <!-- Versions complètes des DLL Unity (le jeu les a allégées), chargées en priorité au runtime -->
+    <!-- Full (unstripped) Unity DLLs (the game ships stripped ones), loaded first at runtime -->
     <UnstrippedDir>$(GameDir)/BepInEx/unstripped_corlib</UnstrippedDir>
     <PluginsDir>$(GameDir)/BepInEx/plugins</PluginsDir>
   </PropertyGroup>
@@ -27,7 +27,7 @@
     <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(UnstrippedDir)/UnityEngine.TextRenderingModule.dll" Private="false" />
   </ItemGroup>
 
-  <!-- Copie automatique du plugin dans le jeu après chaque build -->
+  <!-- Automatically copy the plugin into the game after each build -->
   <Target Name="DeployToGame" AfterTargets="Build">
     <MakeDir Directories="$(PluginsDir)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginsDir)" />

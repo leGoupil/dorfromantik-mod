@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DorfHelper.Model
 {
-    /// <summary>Grille hexagonale du jeu (copie de GridCalculator, qui est internal).</summary>
+    /// <summary>The game's hex grid (copy of GridCalculator, which is internal).</summary>
     internal static class Hex
     {
         private static readonly Vector2Int[] Even =
@@ -16,7 +16,7 @@ namespace DorfHelper.Model
         public static Vector2Int Neighbor(Vector2Int p, int dir) => p + (p.x % 2 == 0 ? Even : Odd)[dir];
     }
 
-    /// <summary>Un bord de tuile : types de groupe présents (ids de GroupTypeId).</summary>
+    /// <summary>A tile edge: group types present (GroupTypeId ids).</summary>
     internal sealed class EdgeSpec
     {
         public static readonly EdgeSpec Empty = new EdgeSpec { Any = new byte[0], NonHybrid = new byte[0] };
@@ -25,15 +25,15 @@ namespace DorfHelper.Model
         public bool Hybrid;
     }
 
-    /// <summary>Un segment de tuile (une zone forêt, village…), dans le repère de la tuile.</summary>
+    /// <summary>A tile segment (a forest area, village…), in the tile's local frame.</summary>
     internal sealed class SegSpec
     {
         public byte Type;
-        public int[] Edges;    // directions (repère tuile) couvertes par le segment
-        public int[] Elements; // nombre d'éléments par type suivi (index = Board.ElementKinds)
+        public int[] Edges;    // directions (tile frame) covered by the segment
+        public int[] Elements; // element count per tracked kind (index = Board.ElementKinds)
     }
 
-    /// <summary>Description pure d'une tuile (sans objet Unity), dans son repère propre.</summary>
+    /// <summary>Pure description of a tile (no Unity object), in its own local frame.</summary>
     internal sealed class TileSpec
     {
         public string Name;
@@ -53,11 +53,11 @@ namespace DorfHelper.Model
         public byte GroupType;
         public int ElementIndex = -1;
         public int Target;
-        public int[] AnchorSegs; // segments surveillés (via leurs groupes)
+        public int[] AnchorSegs; // watched segments (via their groups)
 
         /// <summary>
-        /// Quête portée par la tuile en main : elle n'existe qu'une fois la tuile posée. Ses ancres sont alors
-        /// les segments de la tuile posée (indices dans TileSpec.Segs de la main).
+        /// Quest carried by the tile in hand: it only exists once the tile is placed. Its anchors are then
+        /// the placed tile's segments (indices into the hand's TileSpec.Segs).
         /// </summary>
         public int[] HandSegs;
 
@@ -74,55 +74,55 @@ namespace DorfHelper.Model
     {
         public int Value;
         public QuestStatus Status;
-        public int Open; // bords encore ouverts sur les groupes surveillés
+        public int Open; // edges still open on the watched groups
     }
 
-    /// <summary>Résultat de l'évaluation d'une pose (sans modifier le plateau).</summary>
+    /// <summary>Result of evaluating a placement (without modifying the board).</summary>
     internal sealed class PlacementEval
     {
         public Vector2Int Pos;
         public int Rotation;
         public int Perfect, Mismatched, Empty;
         public int QuestsFulfilled, QuestsFailed;
-        public float QuestProgress; // somme des progrès relatifs (Δ / cible) sur les quêtes de comptage
+        public float QuestProgress; // sum of relative progress (Δ / target) on counting quests
         public int QuestsTouched;
-        public int QuestsEndangered; // quêtes de comptage en cours dont la zone n'a plus qu'un bord ouvert
-        public float Potential;      // variation du nombre attendu de futurs placements parfaits (voir Board.PotentialDelta)
-        public int PerfectTriggered; // placements parfaits déclenchés (la tuile posée + voisines complétées)
-        public bool GoalActive;          // un objectif de biome est suivi (voir Board.Goal)
+        public int QuestsEndangered; // in-progress counting quests whose area has only one open edge left
+        public float Potential;      // change in the expected number of future perfect placements (see Board.PotentialDelta)
+        public int PerfectTriggered; // perfect placements triggered (the placed tile + completed neighbors)
+        public bool GoalActive;          // a biome goal is being tracked (see Board.Goal)
         public int GoalTarget;
         public float GoalScale = 1f;
         public bool GoalClose = true;
         public float GoalElementsPerSegment = 1f;
         public QuestState GoalBefore, GoalAfter;
-        public int[] GoalMergedSegs = new int[0]; // segments de la tuile posée qui rejoignent le groupe ciblé
-        public float GoalProspectDelta;           // variation des perspectives de croissance du groupe ciblé
-        // Objectif "plusieurs groupes" (fermer N groupes d'au moins S éléments)
+        public int[] GoalMergedSegs = new int[0]; // placed tile's segments that join the target group
+        public float GoalProspectDelta;           // change in the target group's growth prospects
+        // "Several groups" goal (close N groups of at least S elements)
         public bool ManyActive;
-        public int ManyClosedQualifying;  // groupes fermés par cette pose avec au moins S éléments
-        public int ManyClosedSmall;       // groupes fermés trop petits
-        public int ManyGrowth;            // progression vers S (plafonnée à S par groupe ; une fusion de gros groupes est négative)
-        public int ManyCloseProgress;     // bords refermés sur les groupes qui ont déjà S éléments
+        public int ManyClosedQualifying;  // groups closed by this placement with at least S elements
+        public int ManyClosedSmall;       // closed groups that are too small
+        public int ManyGrowth;            // progress toward S (capped at S per group; merging large groups is negative)
+        public int ManyCloseProgress;     // edges closed on groups that already have S elements
 
-        public int Points;                // points rapportés par la pose (raccords, parfaits, groupes fermés, quêtes)
-        public int MaxClosedGroupSegs;    // plus grand groupe fermé par la pose (en segments)
-        public float FlowerDelta;         // variation de la "maturité" des fleurs (défi : 7 placements parfaits d'un coup)
+        public int Points;                // points earned by the placement (matches, perfects, closed groups, quests)
+        public int MaxClosedGroupSegs;    // largest group closed by the placement (in segments)
+        public float FlowerDelta;         // change in flower "maturity" (challenge: 7 perfect placements at once)
         public int AtOnceKind, AtOnceTarget;
-        public bool FlowerRuined;  // la pose gâche la fleur en construction
-        public bool FlowerCenterWasted; // tuile posée au centre d'une fleur complète sans atteindre la cible
-        public int FlowerRuinedProgress; // avancement de la fleur gâchée (pénalité proportionnelle)
-        public int ReservedQuestsSpent; // quêtes réservées pour la tuile du centre, terminées ailleurs par cette pose
-        public float ReservedProgress;  // progression (relative à la cible) des quêtes réservées, sans les terminer
-        public int HandQuestNearCenter; // quête de la tuile en main, posée sur un groupe qui touche le centre de la fleur
-        public int TilesGained;      // tuiles gagnées : placements parfaits + quêtes réussies
+        public bool FlowerRuined;  // the placement ruins the flower under construction
+        public bool FlowerCenterWasted; // tile placed in the center of a complete flower without reaching the target
+        public int FlowerRuinedProgress; // progress of the ruined flower (proportional penalty)
+        public int ReservedQuestsSpent; // quests reserved for the center tile, completed elsewhere by this placement
+        public float ReservedProgress;  // progress (relative to target) on reserved quests, without completing them
+        public int HandQuestNearCenter; // quest of the tile in hand, placed on a group that touches the flower's center
+        public int TilesGained;      // tiles gained: perfect placements + fulfilled quests
         public int Neighbors => 6 - Empty;
         public bool PerfectPlacement => Empty == 0 && Mismatched == 0;
     }
 
     /// <summary>
-    /// Modèle pur du plateau : cases, segments et groupes (union-find), quêtes.
-    /// Reproduit les règles du jeu : un bord de segment est "ouvert" tant qu'aucune tuile ne le touche,
-    /// deux segments du même type sur des bords en vis-à-vis fusionnent leurs groupes.
+    /// Pure board model: cells, segments and groups (union-find), quests.
+    /// Mirrors the game rules: a segment edge is "open" as long as no tile touches it;
+    /// two segments of the same type on facing edges merge their groups.
     /// </summary>
     internal sealed class Board
     {
@@ -132,22 +132,22 @@ namespace DorfHelper.Model
         {
             public TileSpec Spec;
             public int Rot;
-            public int[] Segs; // indices globaux des segments de la case
+            public int[] Segs; // global indices of the cell's segments
         }
 
         public int ElementKinds;
-        public int PerfectReward = 2; // tuiles gagnées par placement parfait (RewardSystemConfiguration)
-        public int QuestReward = 0;   // tuiles gagnées par quête réussie (dépend du score)
+        public int PerfectReward = 2; // tiles gained per perfect placement (RewardSystemConfiguration)
+        public int QuestReward = 0;   // tiles gained per fulfilled quest (depends on score)
         /// <summary>
-        /// Objectif de biome (ex. "fermer un champ de 150 champs") : suivi comme une quête "au moins N éléments"
-        /// sur le groupe ciblé (ancres = ses segments). Null si aucun objectif.
+        /// Biome goal (e.g. "close a field of 150 fields"): tracked like an "at least N elements" quest
+        /// on the target group (anchors = its segments). Null if there is no goal.
         /// </summary>
         public QuestModel Goal;
-        public float GoalScale = 1f; // 0..1 : poids de l'objectif, réduit quand la pioche est basse (survie d'abord)
-        public bool GoalClose = true; // true : il faut fermer le groupe ; false : il suffit de l'atteindre
-        public float GoalElementsPerSegment = 1f; // moyenne d'éléments par segment du terrain visé (normalise la croissance)
+        public float GoalScale = 1f; // 0..1: goal weight, reduced when the draw pile is low (survival first)
+        public bool GoalClose = true; // true: the group must be closed; false: reaching the size is enough
+        public float GoalElementsPerSegment = 1f; // average elements per segment of the target terrain (normalizes growth)
 
-        /// <summary>Moyenne d'éléments (ou 1 si on compte les segments) par segment d'un type, sur un échantillon.</summary>
+        /// <summary>Average elements (or 1 when counting segments) per segment of a type, over a sample.</summary>
         public static float ElementsPerSegment(IEnumerable<TileSpec> sample, byte type, int elementIndex)
         {
             if (elementIndex < 0) return 1f;
@@ -158,8 +158,8 @@ namespace DorfHelper.Model
             return segs == 0 ? 1f : System.Math.Max(1f, (float)elems / segs);
         }
 
-        // Points (RewardSystemConfiguration), lus en jeu ; valeurs par défaut du code sinon
-        public int FitScoreMethod;            // 0 linéaire, 1 2^x, 2 x²
+        // Points (RewardSystemConfiguration), read in game; otherwise the code's default values
+        public int FitScoreMethod;            // 0 linear, 1 2^x, 2 x²
         public int FitScoreModifier = 2;
         public bool RewardTileFit = true;
         public int PerfectScore = 60;
@@ -168,11 +168,11 @@ namespace DorfHelper.Model
         public float GroupScoreMultiplier = 3f;
         public int QuestScore = 100;
 
-        /// <summary>Points rapportés par la fermeture d'un groupe de `segments` segments (ElementGroupManager.CloseGroup).</summary>
+        /// <summary>Points earned by closing a group of `segments` segments (ElementGroupManager.CloseGroup).</summary>
         public int GroupClosingPoints(int segments) =>
             RewardGroups && segments > 1 ? (int)System.Math.Round(System.Math.Pow(segments - 1, GroupScorePow) * GroupScoreMultiplier) : 0;
 
-        /// <summary>Points d'une tuile au centre d'une fleur complète (7 placements parfaits + 6 raccords), hors quêtes.</summary>
+        /// <summary>Points for a tile in the center of a complete flower (7 perfect placements + 6 matches), excluding quests.</summary>
         public int FlowerJackpotPoints()
         {
             int fit = !RewardTileFit ? 0 : FitScoreMethod == 0 ? FitScoreModifier * 6
@@ -181,7 +181,7 @@ namespace DorfHelper.Model
             return 7 * PerfectScore + fit;
         }
 
-        /// <summary>Plus petit nombre de segments dont la fermeture rapporte au moins `points` (marge pour les raccords).</summary>
+        /// <summary>Smallest number of segments whose closing earns at least `points` (margin for matches).</summary>
         public int SegmentsForPoints(int points)
         {
             for (int n = 2; n < 2000; n++)
@@ -189,13 +189,13 @@ namespace DorfHelper.Model
             return 2000;
         }
 
-        /// <summary>Le groupe de ce segment est-il encore ouvert ?</summary>
+        /// <summary>Is this segment's group still open?</summary>
         public bool IsSegOpen(int seg) => seg >= 0 && seg < parent.Count && open[Find(seg)] > 0;
 
-        /// <summary>Type d'un segment.</summary>
+        /// <summary>Type of a segment.</summary>
         public int SegType(int seg) => seg >= 0 && seg < segType.Count ? segType[seg] : -1;
 
-        /// <summary>Type du plus grand groupe ouvert (en segments), ou -1.</summary>
+        /// <summary>Type of the largest open group (in segments), or -1.</summary>
         public int LargestOpenGroupType()
         {
             int best = 0, type = -1;
@@ -204,22 +204,22 @@ namespace DorfHelper.Model
             return type;
         }
 
-        // Défis "d'un coup" : 0 aucun, 1 placements parfaits d'un coup (cible = nombre), 2 points en une pose (cible = points)
+        // "At once" challenges: 0 none, 1 perfect placements at once (target = count), 2 points in one placement (target = points)
         public int AtOnceKind;
         public int AtOnceTarget;
 
-        // Objectif "plusieurs groupes" : fermer des groupes de type ManyType d'au moins ManySize éléments
+        // "Several groups" goal: close groups of type ManyType with at least ManySize elements
         public int ManyType = -1;
         public int ManyElement = -1;
         public int ManySize;
-        public TileSpec Hand; // tuile en main (porte éventuellement une quête, voir QuestModel.HandSegs)
+        public TileSpec Hand; // tile in hand (may carry a quest, see QuestModel.HandSegs)
         public bool[] Constraining = new bool[TypeCount];
         public List<QuestModel> Quests = new List<QuestModel>();
 
         private Dictionary<Vector2Int, Cell> cells = new Dictionary<Vector2Int, Cell>();
 
-        // Tuiles de quête "pré-placées" sur la carte : elles contraignent les raccordements (rivières, rails)
-        // des cases voisines, mais ne sont pas sur le plateau (ne ferment aucun bord, ne fusionnent rien).
+        // Quest tiles "pre-placed" on the map: they constrain connections (rivers, rails) of neighboring
+        // cells, but are not on the board (they close no edge and merge nothing).
         private Dictionary<Vector2Int, Cell> ghosts = new Dictionary<Vector2Int, Cell>();
 
         public void AddGhost(TileSpec t, Vector2Int pos, int rot)
@@ -229,11 +229,11 @@ namespace DorfHelper.Model
         }
         private HashSet<Vector2Int> frontier = new HashSet<Vector2Int>();
 
-        // Segments (index global) et union-find
+        // Segments (global index) and union-find
         private List<byte> segType = new List<byte>();
-        private List<int> segWorldEdges = new List<int>(); // masque 6 bits
+        private List<int> segWorldEdges = new List<int>(); // 6-bit mask
         private List<int> parent = new List<int>();
-        // Agrégats, valides sur les racines
+        // Aggregates, valid on roots
         private List<int> open = new List<int>();
         private List<int[]> elements = new List<int[]>();
         private List<int> segCount = new List<int>();
@@ -245,7 +245,7 @@ namespace DorfHelper.Model
         public Board Clone()
         {
             var b = (Board)MemberwiseClone();
-            b.cells = new Dictionary<Vector2Int, Cell>(cells); // les Cell ne sont jamais modifiées après création
+            b.cells = new Dictionary<Vector2Int, Cell>(cells); // Cells are never modified after creation
             b.frontier = new HashSet<Vector2Int>(frontier);
             b.segType = new List<byte>(segType);
             b.segWorldEdges = new List<int>(segWorldEdges);
@@ -256,7 +256,7 @@ namespace DorfHelper.Model
             b.fitProbabilityCache = new Dictionary<Vector2Int, float>();
             b.tilePotentialCache = new Dictionary<Vector2Int, float>();
             b.goalSlotCache = null;
-            b.ReservedQuests = new HashSet<QuestModel>(); // les quêtes réservées ne concernent que la pose immédiate
+            b.ReservedQuests = new HashSet<QuestModel>(); // reserved quests only apply to the immediate placement
             b.CenterTouchRoots = new HashSet<int>();
             return b;
         }
@@ -287,7 +287,7 @@ namespace DorfHelper.Model
 
         private EdgeSpec EdgeAt(Cell c, int worldDir) => c.Spec.Edges[LocalDir(worldDir, c.Rot)] ?? EdgeSpec.Empty;
 
-        /// <summary>Deux bords face à face "collent" (même règle que Tile.PlaceNeighbor / l'AutoPlacer).</summary>
+        /// <summary>Two facing edges "fit" (same rule as Tile.PlaceNeighbor / the AutoPlacer).</summary>
         private static bool EdgesFit(EdgeSpec mine, EdgeSpec theirs) =>
             (mine.Any.Length == 0 && theirs.Any.Length == 0)
             || (mine.Hybrid && theirs.Any.Length == 0)
@@ -295,8 +295,8 @@ namespace DorfHelper.Model
             || mine.Any.Any(theirs.Any.Contains);
 
         /// <summary>
-        /// La voisine en `np` devient-elle un placement parfait si on pose en `pos` (dont le bord vers elle colle ou non) ?
-        /// Il faut ses 6 côtés occupés et tous ses bords qui collent.
+        /// Does the neighbor at `np` become a perfect placement if we place at `pos` (whose edge toward it fits or not)?
+        /// All 6 of its sides must be occupied and all its edges must fit.
         /// </summary>
         private bool CompletesPerfect(Vector2Int np, Vector2Int pos, bool fitTowardsPos)
         {
@@ -311,9 +311,9 @@ namespace DorfHelper.Model
             return true;
         }
 
-        // ---------- Règles ----------
+        // ---------- Rules ----------
 
-        /// <summary>Même règle que TileFitter.TileFitsInSlot (rivières et rails doivent se raccorder).</summary>
+        /// <summary>Same rule as TileFitter.TileFitsInSlot (rivers and rails must connect).</summary>
         public bool Fits(TileSpec t, Vector2Int pos, int rot)
         {
             for (int d = 0; d < 6; d++)
@@ -332,14 +332,14 @@ namespace DorfHelper.Model
             return true;
         }
 
-        /// <summary>Évalue une pose sans modifier le plateau : bords, puis effet exact sur chaque quête.</summary>
+        /// <summary>Evaluates a placement without modifying the board: edges, then the exact effect on each quest.</summary>
         public PlacementEval Evaluate(TileSpec t, Vector2Int pos, int rot, List<QuestState> questStatesAfter = null)
         {
             bool isHand = t == Hand;
             var ev = new PlacementEval { Pos = pos, Rotation = rot };
             int k = t.Segs.Length;
 
-            // Nœuds locaux : 0..k-1 = nos segments, puis les racines voisines touchées.
+            // Local nodes: 0..k-1 = our segments, then the touched neighboring roots.
             var rootIndex = new Dictionary<int, int>();
             var roots = new List<int>();
             var closeCount = new List<int>();
@@ -385,7 +385,7 @@ namespace DorfHelper.Model
                 else ev.Mismatched++;
                 if (CompletesPerfect(Hex.Neighbor(pos, d), pos, perfect)) ev.PerfectTriggered++;
 
-                // Les segments voisins qui touchent ce bord perdent un bord ouvert, et fusionnent avec nous si même type.
+                // Neighboring segments touching this edge lose an open edge, and merge with us if of the same type.
                 foreach (int ns in nb.Segs)
                 {
                     if ((segWorldEdges[ns] & (1 << od)) == 0) continue;
@@ -400,7 +400,7 @@ namespace DorfHelper.Model
                 }
             }
 
-            // Agrégats des composantes locales
+            // Aggregates of the local components
             int n = localParent.Count;
             var cOpen = new int[n];
             var cSeg = new int[n];
@@ -426,19 +426,19 @@ namespace DorfHelper.Model
 
             if (ev.PerfectPlacement) ev.PerfectTriggered++;
 
-            // Quêtes : état avant / après
+            // Quests: state before / after
             foreach (QuestModel q in Quests)
             {
                 if (q.HandSegs != null && !isHand) { questStatesAfter?.Add(default); continue; }
                 if (q.HandSegs != null && CenterTouchRoots.Count > 0 && q.Kind != QuestKind.CloseGroup && q.Comparison == Comparison.MoreThan)
                 {
-                    // Nos segments de quête fusionnent-ils avec un groupe qui touche le centre ?
+                    // Do our quest segments merge with a group that touches the center?
                     var questComps = new HashSet<int>(q.HandSegs.Select(i => LFind(i)));
                     bool joins = CenterTouchRoots.Any(r => rootIndex.TryGetValue(r, out int li) && questComps.Contains(LFind(li)));
                     if (joins) ev.HandQuestNearCenter++;
                 }
                 QuestState before = q.HandSegs != null
-                    ? new QuestState { Value = 0, Status = QuestStatus.InProgress } // la quête n'existe pas encore
+                    ? new QuestState { Value = 0, Status = QuestStatus.InProgress } // the quest does not exist yet
                     : QuestStateOf(q, null, null, null, null, null);
                 QuestState after = QuestStateOf(q, rootIndex, LFind, cOpen, cSeg, cElem);
                 questStatesAfter?.Add(after);
@@ -452,7 +452,7 @@ namespace DorfHelper.Model
                 else if (q.Kind != QuestKind.CloseGroup && q.Target > 0)
                 {
                     ev.QuestProgress += Mathf.Clamp01((float)(after.Value - before.Value) / q.Target);
-                    // Plus qu'un bord ouvert : la prochaine tuile posée là sans prolonger la zone fera échouer la quête.
+                    // Only one open edge left: the next tile placed there without extending the area will fail the quest.
                     if (after.Open == 1 && before.Open != 1) ev.QuestsEndangered++;
                 }
             }
@@ -460,7 +460,7 @@ namespace DorfHelper.Model
 
             if (Goal != null && Goal.AnchorSegs.Length > 0)
             {
-                ev.GoalActive = true; // les protections restent actives même quand la réserve est basse
+                ev.GoalActive = true; // safeguards stay active even when the reserve is low
                 ev.GoalTarget = Goal.Target;
                 ev.GoalScale = GoalScale;
                 ev.GoalClose = GoalClose;
@@ -475,7 +475,7 @@ namespace DorfHelper.Model
 
             ev.TilesGained = ev.PerfectTriggered * PerfectReward + ev.QuestsFulfilled * QuestReward;
 
-            // Points de la pose, comme RewardSystem.AddTilePlacementScore + fermetures de groupes + quêtes
+            // Placement points, like RewardSystem.AddTilePlacementScore + group closings + quests
             int fitPoints = 0;
             if (RewardTileFit && ev.Perfect > 0)
                 fitPoints = FitScoreMethod == 0 ? FitScoreModifier * ev.Perfect
@@ -487,7 +487,7 @@ namespace DorfHelper.Model
             {
                 int r = LFind(x);
                 if (!counted.Add(r) || cOpen[r] != 0) continue;
-                // groupe fermé par la pose : il contient un de nos segments ou une racine voisine (toutes ouvertes avant)
+                // group closed by the placement: it contains one of our segments or a neighboring root (all open before)
                 groupPoints += GroupClosingPoints(cSeg[r]);
                 if (cSeg[r] > ev.MaxClosedGroupSegs) ev.MaxClosedGroupSegs = cSeg[r];
             }
@@ -498,13 +498,13 @@ namespace DorfHelper.Model
             return ev;
         }
 
-        /// <summary>Effets d'une pose sur l'objectif "plusieurs groupes", à partir des composantes locales.</summary>
+        /// <summary>Effects of a placement on the "several groups" goal, computed from the local components.</summary>
         private void EvaluateMany(PlacementEval ev, TileSpec t, int k, List<int> roots, int n, System.Func<int, int> lfind,
                                   int[] cOpen, int[] cSeg, int[][] cElem)
         {
             ev.ManyActive = GoalScale > 0f;
             int Size(int value) => System.Math.Min(value, ManySize);
-            // Valeur "avant" des racines touchées, regroupées par composante locale
+            // "Before" value of the touched roots, grouped by local component
             var beforeCapped = new Dictionary<int, int>();
             var beforeOpenBig = new Dictionary<int, int>();
             var hasType = new HashSet<int>();
@@ -538,8 +538,8 @@ namespace DorfHelper.Model
         }
 
         /// <summary>
-        /// Valeur et statut d'une quête, comme GroupConditionWatcher. Si les tableaux locaux sont fournis,
-        /// les racines touchées par la pose sont remplacées par leur composante fusionnée.
+        /// Value and status of a quest, like GroupConditionWatcher. If the local arrays are provided,
+        /// roots touched by the placement are replaced by their merged component.
         /// </summary>
         private QuestState QuestStateOf(QuestModel q, Dictionary<int, int> rootIndex, System.Func<int, int> lfind,
                                         int[] cOpen, int[] cSeg, int[][] cElem)
@@ -618,11 +618,11 @@ namespace DorfHelper.Model
                     st.Status = remaining >= 0 ? QuestStatus.Fulfilled : QuestStatus.Failed;
                     break;
             }
-            if (st.Status == QuestStatus.InProgress && allClosed) st.Status = QuestStatus.Failed; // groupe fermé trop tôt
+            if (st.Status == QuestStatus.InProgress && allClosed) st.Status = QuestStatus.Failed; // group closed too early
             return st;
         }
 
-        /// <summary>Pose réellement la tuile dans le modèle. Renvoie les indices globaux de ses segments.</summary>
+        /// <summary>Actually places the tile in the model. Returns the global indices of its segments.</summary>
         public int[] Apply(TileSpec t, Vector2Int pos, int rot)
         {
             var cell = new Cell { Spec = t, Rot = rot, Segs = new int[t.Segs.Length] };
@@ -673,24 +673,24 @@ namespace DorfHelper.Model
 
         public QuestState QuestStateOf(QuestModel q) => QuestStateOf(q, null, null, null, null, null);
 
-        // ---------- Potentiel : futurs placements parfaits ----------
+        // ---------- Potential: future perfect placements ----------
         //
-        // Une tuile posée sans bord raté deviendra parfaite (+1 tuile) quand ses côtés vides seront remplis par des
-        // tuiles qui collent. Pour chaque case vide, on estime la probabilité qu'une tuile "au hasard" (échantillon
-        // des tuiles déjà vues) y colle parfaitement dans au moins une rotation. Le potentiel d'une tuile est le
-        // produit de ces probabilités sur ses côtés vides ; le potentiel du plateau est la somme sur les tuiles.
+        // A tile placed with no mismatched edge will become perfect (+1 tile) once its empty sides are filled with
+        // fitting tiles. For each empty cell, we estimate the probability that a "random" tile (sample of tiles
+        // seen so far) fits it perfectly in at least one rotation. A tile's potential is the product of these
+        // probabilities over its empty sides; the board's potential is the sum over all tiles.
 
         private Dictionary<Vector2Int, float> fitProbabilityCache = new Dictionary<Vector2Int, float>();
         private Dictionary<Vector2Int, float> tilePotentialCache = new Dictionary<Vector2Int, float>();
 
-        /// <summary>Case occupée, en tenant compte d'une tuile "virtuelle" posée en vPos (pour évaluer une pose).</summary>
+        /// <summary>Occupied cell, accounting for a "virtual" tile placed at vPos (to evaluate a placement).</summary>
         private bool TryCell(Vector2Int p, Vector2Int vPos, Cell virt, out Cell c)
         {
             if (virt != null && p == vPos) { c = virt; return true; }
             return cells.TryGetValue(p, out c);
         }
 
-        /// <summary>Probabilité qu'une tuile de l'échantillon colle parfaitement en `slot` (1 si aucun voisin).</summary>
+        /// <summary>Probability that a sample tile fits perfectly at `slot` (1 if there are no neighbors).</summary>
         private float FitProbability(Vector2Int slot, List<TileSpec> sample, Vector2Int vPos, Cell virt)
         {
             var needs = new EdgeSpec[6];
@@ -719,7 +719,7 @@ namespace DorfHelper.Model
             return (float)ok / sample.Count;
         }
 
-        /// <summary>Potentiel d'une tuile : 0 si un bord est raté ou si elle n'a plus de côté vide (déjà comptée).</summary>
+        /// <summary>Potential of a tile: 0 if an edge is mismatched or if it has no empty side left (already counted).</summary>
         private float TilePotential(Vector2Int p, List<TileSpec> sample, Vector2Int vPos, Cell virt,
                                     Dictionary<Vector2Int, float> slotProbabilities)
         {
@@ -731,10 +731,10 @@ namespace DorfHelper.Model
                 Vector2Int q = Hex.Neighbor(p, d);
                 if (TryCell(q, vPos, virt, out Cell n))
                 {
-                    if (!EdgesFit(EdgeAt(c, d), EdgeAt(n, (d + 3) % 6))) return 0f; // bord raté : jamais parfaite
+                    if (!EdgesFit(EdgeAt(c, d), EdgeAt(n, (d + 3) % 6))) return 0f; // mismatched edge: never perfect
                     continue;
                 }
-                if (ghosts.ContainsKey(q)) return 0f; // case réservée à une tuile de quête : on ne compte pas dessus
+                if (ghosts.ContainsKey(q)) return 0f; // cell reserved for a quest tile: don't count on it
                 hasEmpty = true;
                 if (!slotProbabilities.TryGetValue(q, out float pr))
                 {
@@ -747,16 +747,16 @@ namespace DorfHelper.Model
         }
 
         /// <summary>
-        /// Variation du potentiel si on pose `t` en `pos` avec la rotation `rot`. Seules les cases voisines de `pos`
-        /// et les tuiles qui les bordent sont touchées. Les placements parfaits réalisés tout de suite sont comptés
-        /// dans TilesGained, pas ici (leur potentiel tombe à 0).
+        /// Change in potential if `t` is placed at `pos` with rotation `rot`. Only the cells neighboring `pos`
+        /// and the tiles bordering them are affected. Perfect placements achieved immediately are counted
+        /// in TilesGained, not here (their potential drops to 0).
         /// </summary>
         public float PotentialDelta(TileSpec t, Vector2Int pos, int rot, List<TileSpec> sample)
         {
             if (sample == null || sample.Count == 0) return 0f;
             var virt = new Cell { Spec = t, Rot = rot, Segs = new int[0] };
 
-            // Tuiles touchées : voisines de pos, et voisines des cases vides autour de pos.
+            // Affected tiles: neighbors of pos, and neighbors of the empty cells around pos.
             var affected = new HashSet<Vector2Int>();
             for (int d = 0; d < 6; d++)
             {
@@ -780,7 +780,7 @@ namespace DorfHelper.Model
                 before += v;
             }
 
-            // Après : probabilités recalculées pour les cases autour de pos, reprises du cache pour les autres.
+            // After: probabilities recomputed for cells around pos, taken from the cache for the others.
             var afterProbabilities = new Dictionary<Vector2Int, float>();
             for (int d = 0; d < 6; d++)
             {
@@ -796,8 +796,8 @@ namespace DorfHelper.Model
         }
 
         /// <summary>
-        /// Taille du plus grand groupe encore ouvert d'un type (en éléments ou en segments) : c'est la référence
-        /// du jeu pour fixer l'objectif d'une nouvelle quête (QuestManager.ReferenceGroupCount).
+        /// Size of the largest still-open group of a type (in elements or segments): this is the game's reference
+        /// for setting a new quest's target (QuestManager.ReferenceGroupCount).
         /// </summary>
         public int LargestOpenGroup(byte type, QuestKind kind, int elementIndex)
         {
@@ -811,7 +811,7 @@ namespace DorfHelper.Model
             return best;
         }
 
-        /// <summary>Segments du plus grand groupe ouvert d'un type (en éléments), ou tableau vide.</summary>
+        /// <summary>Segments of the largest open group of a type (in elements), or an empty array.</summary>
         public int[] LargestOpenGroupSegs(byte type, int elementIndex)
         {
             int bestRoot = -1, best = -1;
@@ -825,7 +825,7 @@ namespace DorfHelper.Model
             return Enumerable.Range(0, parent.Count).Where(i => Find(i) == bestRoot).ToArray();
         }
 
-        /// <summary>Cases vides face aux bords ouverts des segments donnés (et la direction du bord, vue depuis la case).</summary>
+        /// <summary>Empty cells facing the open edges of the given segments (and the edge direction, as seen from the cell).</summary>
         public List<(Vector2Int slot, int dirFromSlot)> OpenEdgeSlots(IEnumerable<int> segs)
         {
             var result = new List<(Vector2Int, int)>();
@@ -844,11 +844,11 @@ namespace DorfHelper.Model
             return result;
         }
 
-        // ---------- Défi : 7 placements parfaits d'un coup ("fleur") ----------
+        // ---------- Challenge: 7 perfect placements at once ("flower") ----------
         //
-        // Une case vide H est une fleur prête quand ses 6 voisines sont posées, chacune entourée sur ses 5 autres
-        // côtés avec tous ses bords qui collent : une tuile qui colle sur les 6 bords de H déclenche alors 7 placements
-        // parfaits. Maturité de H = (voisines "complètes sauf H")², pondérée par la chance de trouver la tuile finale.
+        // An empty cell H is a ready flower when its 6 neighbors are placed, each surrounded on its other 5 sides
+        // with all its edges fitting: a tile that fits all 6 edges of H then triggers 7 perfect placements.
+        // Maturity of H = (neighbors "complete except H")², weighted by the chance of finding the final tile.
 
         private int GoodFlowerNeighbors(Vector2Int h, Vector2Int vPos, Cell virt, out int present)
         {
@@ -880,12 +880,12 @@ namespace DorfHelper.Model
             return good * good * (0.2f + chance);
         }
 
-        /// <summary>Variation de la maturité des fleurs autour de `pos` si on y pose `t` (rotation `rot`).</summary>
+        /// <summary>Change in flower maturity around `pos` if `t` is placed there (rotation `rot`).</summary>
         public float FlowerDelta(TileSpec t, Vector2Int pos, int rot, List<TileSpec> sample)
         {
             if (sample == null || sample.Count == 0) return 0f;
             var virt = new Cell { Spec = t, Rot = rot, Segs = new int[0] };
-            // Cases vides à distance ≤ 2 de pos (leurs voisines peuvent changer d'état), et pos elle-même
+            // Empty cells within distance 2 of pos (their neighbors may change state), and pos itself
             var holes = new HashSet<Vector2Int> { pos };
             for (int d = 0; d < 6; d++)
             {
@@ -903,23 +903,23 @@ namespace DorfHelper.Model
             return after - before;
         }
 
-        // ---------- Défi : 7 placements parfaits d'un coup — planification d'une "fleur" ----------
+        // ---------- Challenge: 7 perfect placements at once — planning a "flower" ----------
         //
-        // Fleur = centre C (laissé vide jusqu'au bout) + anneau intérieur R1 (6) + anneau extérieur R2 (12).
-        // À la fin, chaque tuile de R1 doit avoir ses 6 voisines posées avec tous ses bords qui collent (sauf vers C),
-        // puis une tuile qui colle sur les 6 bords de C déclenche 7 placements parfaits.
+        // Flower = center C (left empty until the end) + inner ring R1 (6) + outer ring R2 (12).
+        // At the end, every R1 tile must have its 6 neighbors placed with all its edges fitting (except toward C),
+        // then a tile that fits all 6 edges of C triggers 7 perfect placements.
 
-        public Vector2Int? FlowerSite; // centre de la fleur en construction (choisi par SelectFlowerSite)
-        public bool LastCenterWasted;  // dernier FlowerPlanDelta : pose au centre d'une fleur complète
-        public int LastRuinedProgress; // dernier FlowerPlanDelta : avancement (2×intérieur + extérieur) de la fleur gâchée
-        public bool FlowerNeedsQuest;  // la fleur seule ne suffit pas : la tuile du centre doit aussi réussir une quête
-        public int FlowerQuestsNeeded = 1; // nombre de quêtes que la tuile du centre doit réussir pour atteindre la cible
-        public HashSet<QuestModel> ReservedQuests = new HashSet<QuestModel>(); // quêtes à garder pour la tuile du centre
-        public HashSet<int> CenterTouchRoots = new HashSet<int>(); // groupes qui touchent le centre de la fleur (phase quêtes)
-        public float QuestTileInRingBonus = 3f;
-        public int QuestPhaseRing1 = 5;     // la préparation / réservation de quêtes commence à 5 tuiles intérieures sur 6
-        public HashSet<Vector2Int> ExcludedFlowerSites = new HashSet<Vector2Int>(); // sites abandonnés (bloqués) // (en points de valeur de fleur) tuile de quête dans l'anneau, quête vers le centre
-        public float FlowerQuestWeight = 80f; // poids de la "quête prête au centre" dans la valeur d'un site
+        public Vector2Int? FlowerSite; // center of the flower under construction (chosen by SelectFlowerSite)
+        public bool LastCenterWasted;  // last FlowerPlanDelta: placement in the center of a complete flower
+        public int LastRuinedProgress; // last FlowerPlanDelta: progress (2×inner + outer) of the ruined flower
+        public bool FlowerNeedsQuest;  // the flower alone is not enough: the center tile must also fulfill a quest
+        public int FlowerQuestsNeeded = 1; // number of quests the center tile must fulfill to reach the target
+        public HashSet<QuestModel> ReservedQuests = new HashSet<QuestModel>(); // quests to keep for the center tile
+        public HashSet<int> CenterTouchRoots = new HashSet<int>(); // groups touching the flower's center (quest phase)
+        public float QuestTileInRingBonus = 3f; // (in flower value points) quest tile in the ring, quest facing the center
+        public int QuestPhaseRing1 = 5;     // quest preparation / reservation starts at 5 of 6 inner tiles
+        public HashSet<Vector2Int> ExcludedFlowerSites = new HashSet<Vector2Int>(); // abandoned (blocked) sites
+        public float FlowerQuestWeight = 80f; // weight of the "quest ready at the center" in a site's value
 
         public static Vector2Int[] Ring1(Vector2Int c) => Enumerable.Range(0, 6).Select(d => Hex.Neighbor(c, d)).ToArray();
 
@@ -938,15 +938,15 @@ namespace DorfHelper.Model
 
         public struct FlowerState
         {
-            public bool Ruined;      // un raccord de la fleur est raté, ou le centre est occupé
-            public int Ring1, Ring2; // positions occupées (et cohérentes) de chaque anneau
-            public float CenterChance; // part des tuiles qui colleraient aux bords tournés vers le centre
-            public float Completion;   // produit des chances de remplir chaque position manquante
-            public float QuestReadiness; // 0..1 : une quête touchant le centre serait réussie par la tuile du centre
+            public bool Ruined;      // a flower match is broken, or the center is occupied
+            public int Ring1, Ring2; // occupied (and consistent) positions of each ring
+            public float CenterChance; // share of tiles that would fit the edges facing the center
+            public float Completion;   // product of the chances of filling each missing position
+            public float QuestReadiness; // 0..1: a quest touching the center would be fulfilled by the center tile
             public float Value;
         }
 
-        /// <summary>État d'une fleur centrée en c (avec une éventuelle tuile virtuelle en vPos).</summary>
+        /// <summary>State of a flower centered at c (with an optional virtual tile at vPos).</summary>
         public FlowerState FlowerAt(Vector2Int c, List<TileSpec> sample) => FlowerAt(c, sample, default, null);
 
         private FlowerState FlowerAt(Vector2Int c, List<TileSpec> sample, Vector2Int vPos, Cell virt)
@@ -963,11 +963,11 @@ namespace DorfHelper.Model
                 for (int d = 0; d < 6; d++)
                 {
                     Vector2Int b = Hex.Neighbor(a, d);
-                    if (b == c) { needs[(d + 3) % 6] = EdgeAt(ca, d); continue; } // bord tourné vers le centre
+                    if (b == c) { needs[(d + 3) % 6] = EdgeAt(ca, d); continue; } // edge facing the center
                     if (ghosts.ContainsKey(b)) { st.Ruined = true; return st; }
                     if (TryCell(b, vPos, virt, out Cell cb) && !EdgesFit(EdgeAt(ca, d), EdgeAt(cb, (d + 3) % 6)))
                     {
-                        st.Ruined = true; // les voisines de R1 (R1 et R2) doivent toutes coller
+                        st.Ruined = true; // R1's neighbors (R1 and R2) must all fit
                         return st;
                     }
                 }
@@ -979,7 +979,7 @@ namespace DorfHelper.Model
                 if (TryCell(b, vPos, virt, out _)) st.Ring2++;
             }
 
-            // Chance de pouvoir remplir chaque position manquante (une tuile qui colle à toutes ses voisines de la fleur)
+            // Chance of filling each missing position (a tile that fits all its flower neighbors)
             st.Completion = 1f;
             if (sample != null && sample.Count > 0)
             {
@@ -992,36 +992,36 @@ namespace DorfHelper.Model
                     {
                         Vector2Int q = Hex.Neighbor(p, d);
                         if (q == c) continue;
-                        // R1 : doit coller à toutes ses voisines posées ; R2 : seulement à ses voisines de R1
+                        // R1: must fit all its placed neighbors; R2: only its R1 neighbors
                         if ((inner || r1.Contains(q)) && TryCell(q, vPos, virt, out Cell nq)) req[d] = EdgeAt(nq, (d + 3) % 6);
                     }
                     st.Completion *= System.Math.Max(0.02f, MatchProbability(req, sample));
                 }
             }
 
-            // Chance de trouver la tuile du centre (sur les bords déjà connus)
+            // Chance of finding the center tile (based on the edges already known)
             st.CenterChance = sample != null && sample.Count > 0 && st.Ring1 > 0 ? MatchProbability(needs, sample) : 1f;
 
-            // Avancement + chance de terminer : un site bloqué (positions presque impossibles à remplir) vaut peu.
+            // Progress + chance of finishing: a blocked site (positions nearly impossible to fill) is worth little.
             float progress = 4f * st.Ring1 + 1.5f * st.Ring2;
-            // Construire d'abord : la préparation de quête ne compte qu'avec un anneau intérieur presque terminé.
+            // Build first: quest preparation only counts once the inner ring is nearly finished.
             if (FlowerNeedsQuest && st.Ring1 >= QuestPhaseRing1) st.QuestReadiness = CenterQuestReadiness(c);
 
-            // Le centre doit rester réalisable : sinon la fleur, même complète, ne servira à rien.
+            // The center must stay achievable: otherwise the flower, even complete, is useless.
             float feasible = (float)System.Math.Sqrt(st.Completion * st.CenterChance);
             st.Value = progress * feasible + 15f * st.Ring1 / 6f * feasible
-                       + (FlowerNeedsQuest ? FlowerQuestWeight * st.QuestReadiness * feasible : 0f); // inutile si le centre est impossible
+                       + (FlowerNeedsQuest ? FlowerQuestWeight * st.QuestReadiness * feasible : 0f); // useless if the center is impossible
             return st;
         }
 
         /// <summary>
-        /// Une quête "au moins N" serait-elle réussie par une tuile posée en c ? La tuile fusionnera les groupes du même
-        /// terrain qui touchent c (par les tuiles posées autour) : on additionne ces groupes, plus l'apport moyen d'un
-        /// segment, et on compare à la cible. 1 = réussie à coup sûr, décroît avec le manque.
+        /// Would an "at least N" quest be fulfilled by a tile placed at c? The tile will merge the same-terrain groups
+        /// that touch c (via the surrounding placed tiles): we sum those groups, plus the average contribution of one
+        /// segment, and compare with the target. 1 = certainly fulfilled, decreasing with the shortfall.
         /// </summary>
         private float CenterQuestReadiness(Vector2Int c)
         {
-            // Racines des segments qui touchent c, par type
+            // Roots of the segments touching c, by type
             var touching = new Dictionary<byte, HashSet<int>>();
             for (int d = 0; d < 6; d++)
             {
@@ -1044,24 +1044,24 @@ namespace DorfHelper.Model
                 if (!roots.Overlaps(anchorRoots)) continue;
                 QuestState now = QuestStateOf(q);
                 if (now.Status != QuestStatus.InProgress) continue;
-                // Valeur après fusion par la tuile du centre (sans compter ses propres éléments : marge de sécurité)
+                // Value after merging by the center tile (not counting its own elements: safety margin)
                 int merged = 0;
                 foreach (int r in roots.Union(anchorRoots))
                     merged += q.Kind == QuestKind.CountElements ? (q.ElementIndex >= 0 ? elements[r][q.ElementIndex] : 0) : segCount[r];
-                int afterCenter = merged + 1; // + au moins un segment / élément apporté par la tuile
+                int afterCenter = merged + 1; // + at least one segment / element contributed by the tile
                 int deficit = q.Target - afterCenter;
                 float readiness = deficit <= 0 ? 1f : System.Math.Max(0f, 1f - (float)deficit / System.Math.Max(4, q.Target / 2));
                 readinessPerQuest.Add(readiness);
             }
-            // Il faut FlowerQuestsNeeded quêtes prêtes à la fois : moyenne des meilleures (les manquantes comptent 0),
-            // pour qu'une quête prête et une seconde en bonne voie guident déjà la préparation.
+            // FlowerQuestsNeeded quests must be ready at the same time: average of the best ones (missing ones count as 0),
+            // so that one ready quest and a second one well on its way already guide the preparation.
             int k = System.Math.Max(1, FlowerQuestsNeeded);
             return readinessPerQuest.OrderByDescending(r => r).Take(k).Sum() / k;
         }
 
         /// <summary>
-        /// Quêtes "au moins N" en cours dont la zone touche le centre c de la fleur : elles sont réservées à la tuile du
-        /// centre (la terminer ailleurs ferait perdre les points de quête de la pose finale).
+        /// In-progress "at least N" quests whose area touches the flower's center c: they are reserved for the center
+        /// tile (completing them elsewhere would lose the quest points of the final placement).
         /// </summary>
         public void ReserveQuestsAround(Vector2Int? center)
         {
@@ -1069,7 +1069,7 @@ namespace DorfHelper.Model
             CenterTouchRoots = new HashSet<int>();
             if (!center.HasValue || !FlowerNeedsQuest) return;
             Vector2Int c = center.Value;
-            // Pas de réservation tant que l'anneau intérieur n'est pas presque fini : les quêtes font survivre.
+            // No reservation until the inner ring is nearly finished: quests keep us alive.
             if (Ring1(c).Count(p => cells.ContainsKey(p)) < QuestPhaseRing1) return;
             var touching = new HashSet<int>();
             for (int d = 0; d < 6; d++)
@@ -1088,7 +1088,7 @@ namespace DorfHelper.Model
             }
         }
 
-        /// <summary>Part des tuiles de l'échantillon qui collent (dans une rotation) à tous les bords demandés.</summary>
+        /// <summary>Share of sample tiles that fit (in some rotation) all the required edges.</summary>
         private static float MatchProbability(EdgeSpec[] req, List<TileSpec> sample)
         {
             int ok = 0;
@@ -1104,8 +1104,8 @@ namespace DorfHelper.Model
         }
 
         /// <summary>
-        /// Choisit le centre de fleur le plus avancé parmi les cases vides proches du plateau. Garde le site actuel
-        /// tant qu'il n'est pas gâché et qu'aucun autre n'est nettement plus avancé.
+        /// Picks the most advanced flower center among the empty cells near the board. Keeps the current site
+        /// as long as it is not ruined and no other one is clearly more advanced.
         /// </summary>
         public Vector2Int? SelectFlowerSite(List<TileSpec> sample, Vector2Int? current)
         {
@@ -1127,16 +1127,16 @@ namespace DorfHelper.Model
             if (current.HasValue && !ExcludedFlowerSites.Contains(current.Value))
             {
                 FlowerState cur = FlowerAt(current.Value, sample, default, null);
-                if (!cur.Ruined && cur.Ring1 == 6 && cur.Ring2 == 12) return current; // fleur complète : on attend la bonne tuile
-                // Persévérance : on ne change que pour un site nettement meilleur (sinon deux sites proches alternent).
+                if (!cur.Ruined && cur.Ring1 == 6 && cur.Ring2 == 12) return current; // complete flower: wait for the right tile
+                // Persistence: only switch to a clearly better site (otherwise two close sites alternate).
                 if (!cur.Ruined && bestValue <= 1.5f * cur.Value + 2f) return current;
             }
             return best;
         }
 
         /// <summary>
-        /// Effet d'une pose sur la fleur en construction : variation de sa valeur, ou gâchis (raccord raté, centre
-        /// occupé sans réussir le défi).
+        /// Effect of a placement on the flower under construction: change in its value, or ruin (broken match, center
+        /// occupied without completing the challenge).
         /// </summary>
         public (float delta, bool ruins) FlowerPlanDelta(TileSpec t, Vector2Int pos, int rot, List<TileSpec> sample)
         {
@@ -1156,8 +1156,8 @@ namespace DorfHelper.Model
             LastCenterWasted = false;
             float delta = after.Value - before.Value;
 
-            // Astuce de joueur : une tuile de quête posée dans l'anneau intérieur, sa zone de quête tournée vers le centre,
-            // met sa quête au contact de la tuile finale (qui la réussira en fusionnant les groupes).
+            // Player trick: a quest tile placed in the inner ring, with its quest area facing the center,
+            // puts its quest in contact with the final tile (which will fulfill it by merging the groups).
             if (FlowerNeedsQuest && t == Hand && Ring1(c).Contains(pos))
             {
                 int towardCenter = Enumerable.Range(0, 6).First(d => Hex.Neighbor(pos, d) == c);
@@ -1170,11 +1170,11 @@ namespace DorfHelper.Model
             return (delta, false);
         }
 
-        // ---------- Objectif de biome : perspectives de croissance ----------
+        // ---------- Biome goal: growth prospects ----------
 
         private Dictionary<Vector2Int, (List<int> dirs, float prob)> goalSlotCache;
 
-        /// <summary>Comme Fits, avec une tuile "virtuelle" éventuelle en vPos.</summary>
+        /// <summary>Like Fits, with an optional "virtual" tile at vPos.</summary>
         private bool FitsWith(TileSpec t, Vector2Int pos, int rot, Vector2Int vPos, Cell virt)
         {
             for (int d = 0; d < 6; d++)
@@ -1192,7 +1192,7 @@ namespace DorfHelper.Model
             return true;
         }
 
-        /// <summary>Part des tuiles de l'échantillon posables en `slot` avec le type `type` sur l'un des bords `dirs`.</summary>
+        /// <summary>Share of sample tiles placeable at `slot` with type `type` on one of the `dirs` edges.</summary>
         private float ExtendProbability(Vector2Int slot, List<int> dirs, byte type, List<TileSpec> sample, Vector2Int vPos, Cell virt)
         {
             if (sample.Count == 0) return 0f;
@@ -1208,7 +1208,7 @@ namespace DorfHelper.Model
             return (float)ok / sample.Count;
         }
 
-        /// <summary>Cases vides face aux bords ouverts d'un groupe, avec les directions (vues depuis la case).</summary>
+        /// <summary>Empty cells facing a group's open edges, with the directions (as seen from the cell).</summary>
         private Dictionary<Vector2Int, List<int>> GroupOpenSlots(IEnumerable<int> segs)
         {
             var slots = new Dictionary<Vector2Int, List<int>>();
@@ -1221,13 +1221,13 @@ namespace DorfHelper.Model
             return slots;
         }
 
-        /// <summary>Perspectives d'un groupe : somme, sur ses cases ouvertes, des chances de pouvoir le prolonger.</summary>
+        /// <summary>Prospects of a group: sum, over its open cells, of the chances of extending it.</summary>
         public float GroupProspects(IEnumerable<int> segs, byte type, List<TileSpec> sample) =>
             GroupOpenSlots(segs).Sum(kv => ExtendProbability(kv.Key, kv.Value, type, sample, default, null));
 
         /// <summary>
-        /// Groupe à viser pour un objectif : le meilleur compromis taille × perspectives. Un groupe "piégé"
-        /// (cases ouvertes où presque aucune tuile ne peut le prolonger) est fortement déprécié.
+        /// Group to target for a goal: the best size × prospects trade-off. A "trapped" group
+        /// (open cells where almost no tile can extend it) is heavily penalized.
         /// </summary>
         public int[] SelectGoalGroup(byte type, int elementIndex, List<TileSpec> sample, int currentAnchor = -1)
         {
@@ -1247,17 +1247,17 @@ namespace DorfHelper.Model
                 if (root == currentRoot) { currentScore = score; currentProspects = prospects; }
                 if (score > best) { best = score; bestRoot = i; }
             }
-            // Persévérance : on garde la cible actuelle tant qu'elle est ouverte, sauf si elle est piégée
-            // et qu'un autre groupe est nettement plus prometteur.
+            // Persistence: keep the current target while it is open, unless it is trapped
+            // and another group is clearly more promising.
             if (currentRoot >= 0 && !(currentProspects < 0.2f && best > 1.5f * currentScore)) bestRoot = currentRoot;
             if (bestRoot < 0) return new int[0];
             return Enumerable.Range(0, parent.Count).Where(i => Find(i) == bestRoot).ToArray();
         }
 
         /// <summary>
-        /// Variation des perspectives du groupe ciblé si on pose `t` en `pos` (rotation `rot`) : cases ouvertes
-        /// autour de pos dont les contraintes changent, case pos qui disparaît, et nouveaux bords ouverts apportés
-        /// par la tuile si elle rejoint le groupe (ev.GoalMergedSegs).
+        /// Change in the target group's prospects if `t` is placed at `pos` (rotation `rot`): open cells
+        /// around pos whose constraints change, the pos cell disappearing, and new open edges contributed
+        /// by the tile if it joins the group (ev.GoalMergedSegs).
         /// </summary>
         public float GoalProspectDelta(TileSpec t, Vector2Int pos, int rot, PlacementEval ev, List<TileSpec> sample)
         {
@@ -1269,7 +1269,7 @@ namespace DorfHelper.Model
             var virt = new Cell { Spec = t, Rot = rot, Segs = new int[0] };
             float before = 0f, after = 0f;
 
-            // Cases ouvertes du groupe touchées par la pose : pos elle-même et ses voisines.
+            // The group's open cells affected by the placement: pos itself and its neighbors.
             var afterDirs = new Dictionary<Vector2Int, List<int>>();
             foreach (var kv in goalSlotCache)
             {
@@ -1281,7 +1281,7 @@ namespace DorfHelper.Model
                 afterDirs[kv.Key] = new List<int>(kv.Value.dirs);
             }
 
-            // Nouveaux bords ouverts apportés par nos segments qui rejoignent le groupe.
+            // New open edges contributed by our segments that join the group.
             foreach (int i in ev.GoalMergedSegs)
                 foreach (int le in t.Segs[i].Edges)
                 {
@@ -1297,7 +1297,7 @@ namespace DorfHelper.Model
             return after - before;
         }
 
-        /// <summary>Plus grand groupe d'un type, ouvert ou fermé (objectifs "former un grand groupe").</summary>
+        /// <summary>Largest group of a type, open or closed ("form a large group" goals).</summary>
         public int LargestGroup(byte type, int elementIndex)
         {
             int best = 0;
@@ -1310,7 +1310,7 @@ namespace DorfHelper.Model
             return best;
         }
 
-        /// <summary>Plus grand groupe fermé d'un type (en éléments) : sert à détecter qu'un objectif est atteint.</summary>
+        /// <summary>Largest closed group of a type (in elements): used to detect that a goal is reached.</summary>
         public int LargestClosedGroup(byte type, int elementIndex)
         {
             int best = 0;
@@ -1323,22 +1323,22 @@ namespace DorfHelper.Model
             return best;
         }
 
-        /// <summary>Retrouve un segment par (case, type, masque de bords monde). -1 si absent.</summary>
+        /// <summary>Finds a segment by (cell, type, world edge mask). -1 if not found.</summary>
         public int FindSeg(Vector2Int pos, byte type, int worldEdgeMask)
         {
             if (!cells.TryGetValue(pos, out Cell c)) return -1;
             foreach (int s in c.Segs)
                 if (segType[s] == type && segWorldEdges[s] == worldEdgeMask) return s;
-            foreach (int s in c.Segs) // à défaut : même type, bords qui se recoupent
+            foreach (int s in c.Segs) // fallback: same type, overlapping edges
                 if (segType[s] == type && (segWorldEdges[s] & worldEdgeMask) != 0) return s;
             return -1;
         }
 
-        /// <summary>Diagnostic : pour chaque groupe distinct des ancres, type, bords ouverts et nombre de segments.</summary>
+        /// <summary>Diagnostic: for each distinct anchor group, its type, open edges and segment count.</summary>
         public string DescribeAnchors(int[] anchors) =>
-            string.Join(", ", anchors.Select(Find).Distinct().Select(r => $"[type {segType[r]} ouverts {open[r]} segs {segCount[r]}]"));
+            string.Join(", ", anchors.Select(Find).Distinct().Select(r => $"[type {segType[r]} open {open[r]} segs {segCount[r]}]"));
 
-        /// <summary>Case et masque de bords monde d'un segment (pour le retrouver dans une autre photo).</summary>
+        /// <summary>Cell and world edge mask of a segment (to find it again in another snapshot).</summary>
         public (Vector2Int pos, int mask) DescribeSeg(int seg)
         {
             foreach (var kv in cells)
@@ -1346,11 +1346,11 @@ namespace DorfHelper.Model
             return (default, 0);
         }
 
-        /// <summary>Diagnostic : bord vu depuis la case voisine de `pos` dans la direction `dir`.</summary>
+        /// <summary>Diagnostic: edge as seen from the cell neighboring `pos` in direction `dir`.</summary>
         public string DescribeNeighborEdge(Vector2Int pos, int dir)
         {
             Vector2Int np = Hex.Neighbor(pos, dir);
-            if (!cells.TryGetValue(np, out Cell nb)) return $"{np}: vide";
+            if (!cells.TryGetValue(np, out Cell nb)) return $"{np}: empty";
             EdgeSpec e = EdgeAt(nb, (dir + 3) % 6);
             return $"{np} {nb.Spec.Name} rot{nb.Rot}: [{string.Join(",", e.Any)}]";
         }

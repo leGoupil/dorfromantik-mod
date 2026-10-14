@@ -11,11 +11,11 @@ namespace DorfHelper
 {
     internal enum Objective
     {
-        Score,   // bords parfaits, quêtes en bonus
-        Quests,  // priorité aux quêtes
-        Compact, // remplit les trous, garde une frontière propre pour faire durer la partie
-        Clean,        // score max, mais aucun bord incompatible (sauf s'il n'existe aucune pose propre)
-        CompactClean, // durer, mais aucun bord incompatible (sauf s'il n'existe aucune pose propre)
+        Score,   // perfect edges, quests as a bonus
+        Quests,  // quests first
+        Compact, // fills holes, keeps a clean frontier to make the game last
+        Clean,        // max score, but no mismatched edge (unless no clean placement exists)
+        CompactClean, // last long, but no mismatched edge (unless no clean placement exists)
     }
 
     internal partial class Suggestion
@@ -39,19 +39,19 @@ namespace DorfHelper
         public const float Discount = 0.85f;
         private const int FirstMoveCandidates = 10;
 
-        /// <summary>Objectifs "sans bord raté" : un bord raté coûte plus que tout ce qu'une pose peut rapporter.</summary>
+        /// <summary>"No mismatched edge" objectives: a mismatched edge costs more than any placement can earn.</summary>
         public static bool IsStrict(Objective o) => o == Objective.Clean || o == Objective.CompactClean;
 
-        /// <summary>Objectifs qui tiennent compte du potentiel (futurs placements parfaits).</summary>
+        /// <summary>Objectives that account for potential (future perfect placements).</summary>
         public static bool UsesPotential(Objective o) => o == Objective.Compact || o == Objective.CompactClean;
 
-        /// <summary>Note immédiate d'une pose selon l'objectif.</summary>
-        private const float TileValue = 30f;      // valeur d'une tuile gagnée, en points de note
-        private const float PotentialWeight = 0.8f; // un placement parfait "probable" vaut un peu moins qu'un acquis
+        /// <summary>Immediate score of a placement for the given objective.</summary>
+        private const float TileValue = 30f;      // value of a gained tile, in rating points
+        private const float PotentialWeight = 0.8f; // a "likely" perfect placement is worth slightly less than a secured one
 
         public static float ScoreFor(PlacementEval e, Objective objective, int questReward = 3, int perfectReward = 1)
         {
-            // Base = poids de l'AutoPlacer des devs : +10 bord parfait, -30 bord qui ne colle pas.
+            // Base = weights of the devs' AutoPlacer: +10 per perfect edge, -30 per mismatched edge.
             float s = 10f * e.Perfect - 30f * e.Mismatched;
             if (e.PerfectPlacement) s += 20f;
 
@@ -64,20 +64,20 @@ namespace DorfHelper
                     s += 120f * e.QuestsFulfilled - 150f * e.QuestsFailed + 60f * e.QuestProgress;
                     break;
                 case Objective.Clean:
-                    // Contrainte quasi stricte : un bord raté coûte plus que tout ce qu'une pose peut rapporter.
+                    // Near-strict constraint: a mismatched edge costs more than any placement can earn.
                     s += 40f * e.QuestsFulfilled - 80f * e.QuestsFailed + 20f * e.QuestProgress;
                     break;
                 case Objective.Compact:
                 case Objective.CompactClean:
-                    // Durer = gagner des tuiles : placements parfaits (la tuile posée et les voisines complétées)
-                    // et quêtes réussies. Une quête ratée est une récompense perdue.
+                    // Lasting = gaining tiles: perfect placements (the placed tile and completed neighbors)
+                    // and fulfilled quests. A failed quest is a lost reward.
                     s += TileValue * e.TilesGained
                          - 0.7f * TileValue * questReward * e.QuestsFailed
                          + 0.8f * TileValue * questReward * e.QuestProgress
                          - 0.3f * TileValue * questReward * e.QuestsEndangered
                          + PotentialWeight * TileValue * perfectReward * e.Potential
                          + 8f * e.Neighbors;
-                    if (e.Neighbors <= 1) s -= 20f; // évite d'étirer la frontière
+                    if (e.Neighbors <= 1) s -= 20f; // avoid stretching the frontier
                     break;
             }
             if (IsStrict(objective)) s -= 1000f * e.Mismatched;
@@ -85,37 +85,37 @@ namespace DorfHelper
             if (e.ManyActive) s += e.GoalScale * ManyScore(e);
             if (e.AtOnceKind == 1)
             {
-                if (e.PerfectTriggered >= e.AtOnceTarget) s += 5000f;           // défi réussi
-                else if (e.FlowerRuined) s -= RuinPenalty(e);                    // fleur gâchée (toujours actif)
-                else s += e.GoalScale * FlowerWeight * e.FlowerDelta;           // progression de la fleur
+                if (e.PerfectTriggered >= e.AtOnceTarget) s += 5000f;           // challenge completed
+                else if (e.FlowerRuined) s -= RuinPenalty(e);                    // flower ruined (always active)
+                else s += e.GoalScale * FlowerWeight * e.FlowerDelta;           // flower progress
             }
             else if (e.AtOnceKind == 2)
             {
-                // Fleur complète "grillée" au centre sans atteindre la cible : interdit, sauf si la pioche est presque vide.
+                // Complete flower "wasted" at the center without reaching the target: forbidden, unless the stack is nearly empty.
                 if (e.FlowerCenterWasted && e.Points < e.AtOnceTarget && e.GoalScale > 0f) s -= CenterWastePenalty;
-                s -= ReservedQuestPenalty * e.ReservedQuestsSpent;              // quête réservée au centre, gâchée ailleurs
-                s += ReservedProgressWeight * e.ReservedProgress;               // préparer les quêtes réservées, où qu'elles soient
-                // Une nouvelle quête qui touche le centre (tuile de quête posée sur un groupe relié au centre), sans la réussir tout de suite
+                s -= ReservedQuestPenalty * e.ReservedQuestsSpent;              // quest reserved for the center, wasted elsewhere
+                s += ReservedProgressWeight * e.ReservedProgress;               // prepare reserved quests, wherever they are
+                // A new quest touching the center (quest tile placed on a group connected to the center), without fulfilling it right away
                 if (e.HandQuestNearCenter > 0 && e.QuestsFulfilled == 0) s += HandQuestNearCenterBonus * e.HandQuestNearCenter;
-                if (e.Points >= e.AtOnceTarget) s += 5000f;                     // défi réussi
-                else if (e.FlowerRuined) s -= RuinPenalty(e);                    // fleur gâchée (dont centre sans atteindre la cible)
-                else s += e.GoalScale * FlowerWeight * e.FlowerDelta;           // progression de la fleur (si elle est utilisée)
+                if (e.Points >= e.AtOnceTarget) s += 5000f;                     // challenge completed
+                else if (e.FlowerRuined) s -= RuinPenalty(e);                    // flower ruined (including center without reaching the target)
+                else s += e.GoalScale * FlowerWeight * e.FlowerDelta;           // flower progress (if a flower is used)
             }
             return s;
         }
 
-        // Objectif de biome : croissance jusqu'à la cible sans fermer le groupe, puis fermeture.
-        public static float GoalGrowWeight = 60f;    // par élément ajouté au groupe
-        public static float GoalCloseWeight = 25f;  // par bord ouvert refermé, une fois la cible atteinte
-        public static int GoalSafeOpenEdges = 4;    // en dessous, le groupe risque d'être fermé trop tôt
-        public static float GoalEdgeLossWeight = 40f; // par bord ouvert du groupe refermé sans le prolonger
-        public static float GoalProspectWeight = 150f; // par "case sûre" de croissance gagnée ou perdue
+        // Biome goal: grow up to the target without closing the group, then close it.
+        public static float GoalGrowWeight = 60f;    // per element added to the group
+        public static float GoalCloseWeight = 25f;  // per open edge closed, once the target is reached
+        public static int GoalSafeOpenEdges = 4;    // below this, the group risks being closed too early
+        public static float GoalEdgeLossWeight = 40f; // per open edge of the group closed without extending it
+        public static float GoalProspectWeight = 150f; // per "safe slot" for growth gained or lost
 
-        // Dosage de l'objectif selon la réserve : 0 sous GoalMinStack tuiles en pioche, 1 au-delà de GoalFullStack.
+        // Goal weighting by remaining tiles: 0 below GoalMinStack tiles in the stack, 1 above GoalFullStack.
         public static int GoalMinStack = 15;
         public static int GoalFullStack = 40;
 
-        // Fleurs (défis "d'un coup") : construire coûte peu en survie, on coupe beaucoup plus tard.
+        // Flowers ("at once" challenges): building costs little survival, so we cut off much later.
         public static int FlowerMinStack = 5;
         public static int FlowerFullStack = 20;
 
@@ -125,23 +125,23 @@ namespace DorfHelper
         public static float GoalScaleFor(int stackHeight) =>
             GoalFullStack <= GoalMinStack ? 1f : Mathf.Clamp01((float)(stackHeight - GoalMinStack) / (GoalFullStack - GoalMinStack));
 
-        public static float FlowerWeight = 100f;        // par point de progression de la fleur planifiée
-        public static float FlowerRuinPenalty = 400f;  // gâcher la fleur en construction
-        public static float ReservedQuestPenalty = 400f; // terminer ailleurs une quête réservée pour la tuile du centre
-        public static float FlowerRuinPerProgress = 120f; // par point d'avancement (2 × intérieur + extérieur) de la fleur gâchée
+        public static float FlowerWeight = 100f;        // per progress point of the planned flower
+        public static float FlowerRuinPenalty = 400f;  // ruining the flower under construction
+        public static float ReservedQuestPenalty = 400f; // completing elsewhere a quest reserved for the center tile
+        public static float FlowerRuinPerProgress = 120f; // per progress point (2 × inner + outer) of the ruined flower
 
-        /// <summary>Gâcher une fleur coûte d'autant plus qu'elle était avancée.</summary>
+        /// <summary>Ruining a flower costs more the further along it was.</summary>
         private static float RuinPenalty(PlacementEval e) => FlowerRuinPenalty + FlowerRuinPerProgress * e.FlowerRuinedProgress;
 
-        public static float CenterWastePenalty = 3000f;  // poser au centre d'une fleur complète sans atteindre la cible
-        public static float ReservedProgressWeight = 400f;
-        public static float HandQuestNearCenterBonus = 600f; // nouvelle quête reliée au centre de la fleur // par quête réservée amenée de 0 à 100 % de sa cible (sans la terminer)
+        public static float CenterWastePenalty = 3000f;  // placing at the center of a complete flower without reaching the target
+        public static float ReservedProgressWeight = 400f;   // per reserved quest brought from 0 to 100% of its target (without completing it)
+        public static float HandQuestNearCenterBonus = 600f; // new quest connected to the flower center
 
-        // Objectif "plusieurs groupes"
-        public static float ManyClosedWeight = 600f;  // par groupe fermé assez grand
-        public static float ManySmallPenalty = 40f;   // par groupe fermé trop petit
-        public static float ManyGrowthWeight = 25f;   // par élément vers la taille cible (plafonné par groupe)
-        public static float ManyCloseWeight = 40f;    // par bord refermé sur un groupe déjà assez grand
+        // "Many groups" goal
+        public static float ManyClosedWeight = 600f;  // per closed group that is large enough
+        public static float ManySmallPenalty = 40f;   // per closed group that is too small
+        public static float ManyGrowthWeight = 25f;   // per element toward the target size (capped per group)
+        public static float ManyCloseWeight = 40f;    // per edge closed on a group that is already large enough
 
         public static float ManyScore(PlacementEval e) =>
             ManyClosedWeight * e.ManyClosedQualifying
@@ -150,9 +150,9 @@ namespace DorfHelper
             + ManyCloseWeight * e.ManyCloseProgress;
 
         /// <summary>
-        /// Note de l'objectif de biome. Les bonus (croissance, perspectives, fermeture) sont dosés par la réserve de
-        /// tuiles (e.GoalScale) ; les protections du groupe (ne pas le fermer trop tôt, ne pas lui retirer de bords
-        /// ouverts) restent toujours actives, sinon le bot détruit son propre groupe en période de disette.
+        /// Biome goal score. Bonuses (growth, prospects, closing) are scaled by the remaining tiles
+        /// (e.GoalScale); group protections (don't close it too early, don't remove its open edges)
+        /// always stay active, otherwise the bot destroys its own group when tiles run low.
         /// </summary>
         public static float GoalScore(PlacementEval e)
         {
@@ -161,34 +161,34 @@ namespace DorfHelper
             float bonus = 0f, protection = 0f;
             if (after.Value < target)
             {
-                bonus += GoalGrowWeight / e.GoalElementsPerSegment * (after.Value - before.Value); // par "segment" ajouté
+                bonus += GoalGrowWeight / e.GoalElementsPerSegment * (after.Value - before.Value); // per "segment" added
                 bonus += GoalProspectWeight * e.GoalProspectDelta;
-                bonus += 4f * (Math.Min(after.Open, 8) - Math.Min(before.Open, 8)); // garder de la marge pour grandir
+                bonus += 4f * (Math.Min(after.Open, 8) - Math.Min(before.Open, 8)); // keep room to grow
 
-                if (after.Open == 0) protection -= 3000f;                           // fermé avant la cible
+                if (after.Open == 0) protection -= 3000f;                           // closed before the target
                 else if (after.Open <= GoalSafeOpenEdges && after.Open < before.Open)
-                    protection -= 80f * (GoalSafeOpenEdges + 1 - after.Open);       // de plus en plus en danger
-                // Chaque bord ouvert perdu sans croissance est une occasion de grandir en moins.
+                    protection -= 80f * (GoalSafeOpenEdges + 1 - after.Open);       // increasingly at risk
+                // Each open edge lost without growth is one less chance to grow.
                 if (after.Value == before.Value && after.Open < before.Open) protection -= GoalEdgeLossWeight * (before.Open - after.Open);
             }
             else if (!e.GoalClose)
             {
-                if (before.Value < target) bonus += 3000f;                          // "former" : objectif atteint
+                if (before.Value < target) bonus += 3000f;                          // "form": goal reached
             }
             else
             {
-                if (before.Value < target) bonus += 300f;                           // cible atteinte
+                if (before.Value < target) bonus += 300f;                           // target reached
                 bonus += GoalCloseWeight * (before.Open - after.Open);
-                if (after.Open == 0) bonus += 3000f;                                // groupe fermé : objectif réussi
+                if (after.Open == 0) bonus += 3000f;                                // group closed: goal completed
             }
             return e.GoalScale * bonus + protection;
         }
 
         /// <summary>
-        /// Calcul complet (thread d'arrière-plan) : toutes les poses de la tuile en main, puis pour les meilleures,
-        /// simulation gloutonne de la suite : les `depth` tuiles visibles de la pioche, puis `simulated` tuiles
-        /// probables tirées parmi les tuiles déjà vues. Plusieurs tirages (les mêmes pour tous les candidats),
-        /// dont on fait la moyenne ; leur nombre s'adapte au budget de temps.
+        /// Full search (background thread): every placement of the tile in hand, then for the best ones,
+        /// a greedy simulation of what follows: the `depth` visible tiles of the stack, then `simulated` likely
+        /// tiles drawn from the tiles seen so far. Several draws (the same for all candidates) are averaged;
+        /// their number adapts to the time budget.
         /// </summary>
         public static SearchResult Run(GameSnapshot snap, Objective objective, int depth, int simulated, CancellationToken ct)
         {
@@ -200,7 +200,7 @@ namespace DorfHelper
             Board board = snap.Board;
             if (snap.Hand == null) return result;
 
-            // Échantillon de tuiles "typiques" pour estimer le potentiel des cases vides.
+            // Sample of "typical" tiles to estimate the potential of empty slots.
             const int SampleSize = 40;
             List<TileSpec> sample = snap.Pool.Count <= SampleSize
                 ? snap.Pool
@@ -236,7 +236,7 @@ namespace DorfHelper
             int samplesDone = 0;
             if (lookahead)
             {
-                // Tirages communs à tous les candidats (comparaison équitable).
+                // Draws shared by all candidates (fair comparison).
                 var rng = new System.Random(snap.PlacedCount);
                 var sequences = new List<List<TileSpec>>();
                 int maxSamples = extra > 0 ? MaxSamples : 1;
@@ -257,14 +257,14 @@ namespace DorfHelper
                         Suggestion c = candidates[i];
                         Board b = board.Clone();
                         int[] placed = b.Apply(snap.Hand, c.Pos, c.Rotation);
-                        // La quête de la tuile en main devient une quête normale, ancrée sur ses segments posés.
+                        // The hand tile's quest becomes a regular quest, anchored on its placed segments.
                         b.Quests = b.Quests.Select(q => q.HandSegs != null ? q.AnchoredOn(placed) : q).ToList();
                         b.Hand = null;
                         totals[i] += Rollout(b, sequences[sample], sequences[sample].Count, objective, ct);
                     });
                 }
 
-                // Premier tirage pour mesurer le coût, puis autant que le budget le permet.
+                // First draw to measure the cost, then as many as the budget allows.
                 long t0 = sw.ElapsedMilliseconds;
                 RunSample(0);
                 samplesDone = 1;
@@ -285,12 +285,12 @@ namespace DorfHelper
                 .ThenByDescending(s => s.Eval.Neighbors)
                 .Take(3)
                 .ToList();
-            result.Stats = $"{first.Count} poses, suite = {known} visibles + {extra} probables × {samplesDone} tirages " +
-                           $"× {candidates.Count} candidats (réserve {snap.Pool.Count} tuiles) en {sw.ElapsedMilliseconds} ms";
+            result.Stats = $"{first.Count} placements, lookahead = {known} visible + {extra} likely × {samplesDone} draws " +
+                           $"× {candidates.Count} candidates (pool {snap.Pool.Count} tiles) in {sw.ElapsedMilliseconds} ms";
             return result;
         }
 
-        /// <summary>Joue les tuiles suivantes "au mieux immédiat" et renvoie la somme actualisée des notes.</summary>
+        /// <summary>Plays the next tiles greedily (best immediate score) and returns the discounted sum of scores.</summary>
         private static float Rollout(Board b, List<TileSpec> stack, int steps, Objective objective, CancellationToken ct)
         {
             float total = 0f, weight = 1f;
@@ -317,7 +317,7 @@ namespace DorfHelper
                 }
                 if (best == null)
                 {
-                    total -= 50f * weight; // tuile impossible à poser
+                    total -= 50f * weight; // tile cannot be placed
                     continue;
                 }
                 total += weight * bestScore;

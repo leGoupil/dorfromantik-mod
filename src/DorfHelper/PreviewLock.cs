@@ -5,8 +5,8 @@ using UnityEngine.InputSystem;
 namespace DorfHelper
 {
     /// <summary>
-    /// Après F5, empêche le survol de la souris (TileSlotSelector) de redéplacer la tuile d'aperçu,
-    /// tant que la souris n'a pas vraiment bougé. Un clic pose alors la tuile sur la suggestion.
+    /// After F5, prevents mouse hover (TileSlotSelector) from moving the preview tile again
+    /// until the mouse has actually moved. A click then places the tile on the suggestion.
     /// </summary>
     [HarmonyPatch(typeof(InputRouter), nameof(InputRouter.MovePreviewTile))]
     internal static class PreviewLock
@@ -19,10 +19,10 @@ namespace DorfHelper
 
         public static bool IsLocked => locked;
 
-        /// <summary>Vrai tant que le raccourci Ctrl+Cmd est maintenu : la souris ne déverrouille pas.</summary>
+        /// <summary>True while the Ctrl+Cmd shortcut is held: the mouse does not unlock.</summary>
         public static bool Held;
 
-        /// <summary>Déplace l'aperçu nous-mêmes (passe à travers le verrou) puis verrouille.</summary>
+        /// <summary>Moves the preview ourselves (bypassing the lock), then locks.</summary>
         public static void MoveAndLock(InputRouter router, TileSlot slot)
         {
             ownMove = true;
@@ -34,7 +34,7 @@ namespace DorfHelper
 
         public static void Release() => locked = false;
 
-        /// <summary>À appeler à chaque frame : libère le verrou si la souris s'est éloignée.</summary>
+        /// <summary>Call every frame: releases the lock if the mouse has moved away.</summary>
         public static void Tick()
         {
             if (locked && !Held && (MousePosition() - lockMousePos).sqrMagnitude > ReleaseDistance * ReleaseDistance)
@@ -43,9 +43,9 @@ namespace DorfHelper
 
         private static Vector2 MousePosition() => Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
 
-        // Prefix Harmony : renvoyer false annule l'appel d'origine.
-        // On ignore aussi un déplacement vers une case détruite (référence encore présente mais objet Unity disparu),
-        // qui ferait planter le jeu à chaque frame ; un déplacement explicite vers null reste permis.
+        // Harmony prefix: returning false cancels the original call.
+        // Also ignore a move to a destroyed slot (reference still set but Unity object gone),
+        // which would crash the game every frame; an explicit move to null is still allowed.
         private static bool Prefix(TileSlot targetTileSlot)
         {
             if (!ReferenceEquals(targetTileSlot, null) && !targetTileSlot) return false;

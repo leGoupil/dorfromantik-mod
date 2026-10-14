@@ -12,7 +12,7 @@ using UnityEngine;
 namespace DorfSim
 {
     /// <summary>
-    /// Rejoue des parties complètes avec le vrai solveur du mod et des tuiles tirées parmi celles enregistrées en jeu.
+    /// Replays full games with the mod's real solver, drawing tiles from those recorded in-game.
     ///
     ///   dotnet run -c Release -- --games 50 --objective CompactClean,Clean --depth 2
     /// </summary>
@@ -29,23 +29,23 @@ namespace DorfSim
             public int PerfectReward = 1;
             public int QuestReward = 5;
             public int Seed = 1;
-            public int MaxTiles = 600;  // garde-fou
+            public int MaxTiles = 600;  // safety cap
             public bool Verbose;
-            public double QuestScale = 1.0; // multiplie l'incrément d'objectif des quêtes (calibrage)
-            public int FitModifier = 10;      // règles du mode Classique (log "Config des points")
+            public double QuestScale = 1.0; // multiplies the quest target increment (calibration)
+            public int FitModifier = 10;      // Classic mode rules (log "Scoring config")
             public bool GroupPoints = false;
-            public string AtOnce; // "perfect:7" (placements parfaits d'un coup) ou "points:660" (points en une pose)
-            public string Many; // ex. "Agriculture:Field:10" : fermer le plus de groupes d'au moins 10 Field
-            public string Goal; // ex. "Agriculture:Field:150" : fermer un groupe d'au moins 150 éléments Field
+            public string AtOnce; // "perfect:7" (perfect placements in one move) or "points:660" (points from one placement)
+            public string Many; // e.g. "Agriculture:Field:10": close as many groups of at least 10 Field as possible
+            public string Goal; // e.g. "Agriculture:Field:150": close a group of at least 150 Field elements
         }
 
         private sealed class GameResult
         {
             public int Placed, Perfects, QuestsDone, QuestsFailed, Discarded, Mismatched;
-            public int GoalReachedAt = -1;   // tuiles posées quand l'objectif est atteint
-            public int GoalBestSize;         // plus grand groupe ciblé observé
-            public int GoalClosedEarly;      // fois où le groupe ciblé a été fermé avant la cible
-            public int ManyDone;             // groupes fermés assez grands (objectif "plusieurs groupes")
+            public int GoalReachedAt = -1;   // tiles placed when the goal is reached
+            public int GoalBestSize;         // largest targeted group seen
+            public int GoalClosedEarly;      // times the targeted group was closed before reaching the target
+            public int ManyDone;             // closed groups that were large enough ("many groups" goal)
             public int MaxPerfectAtOnce, MaxPoints, AtOnceReachedAt = -1;
         }
 
@@ -55,10 +55,10 @@ namespace DorfSim
             Dataset data = Dataset.Load(o.DataDir);
  if (o.Many != null && o.Many.Split(':')[1] != "" && !data.ElementNames.Contains(o.Many.Split(':')[1])) data.ElementNames.Add(o.Many.Split(':')[1]);
             if (o.Goal != null && o.Goal.Split(':')[1] != "" && !data.ElementNames.Contains(o.Goal.Split(':')[1])) data.ElementNames.Add(o.Goal.Split(':')[1]);
-            Console.WriteLine($"Données : {data.Tiles.Count} tuiles ({data.Tiles.Count(t => t.Quest)} de quête), " +
-                              $"{data.Quests.Count} quêtes — source {data.Source}");
-            Console.WriteLine($"Parties : {o.Games} par objectif, pioche initiale {o.InitialStack}, anticipation {o.Depth}, " +
-                              $"récompenses parfait +{o.PerfectReward} / quête +{o.QuestReward}\n");
+            Console.WriteLine($"Data: {data.Tiles.Count} tiles ({data.Tiles.Count(t => t.Quest)} quest tiles), " +
+                              $"{data.Quests.Count} quests — source {data.Source}");
+            Console.WriteLine($"Games: {o.Games} per objective, initial stack {o.InitialStack}, lookahead {o.Depth}, " +
+                              $"rewards perfect +{o.PerfectReward} / quest +{o.QuestReward}\n");
 
             foreach (Objective objective in o.Objectives)
             {
@@ -83,7 +83,7 @@ namespace DorfSim
             };
             var pool = new List<TileSpec>();
 
-            // Tuile de départ
+            // Starting tile
             RecordedTile start = data.Tiles.Where(t => !t.Quest).OrderBy(_ => rng.Next()).First();
             TileSpec startSpec = data.ToSpec(start);
             board.Apply(startSpec, new Vector2Int(0, 0), 0);
@@ -101,7 +101,7 @@ namespace DorfSim
             {
                 string[] g = o.Goal.Split(':');
                 goalType = Array.IndexOf(Dataset.GroupNames, g[0]);
-                goalElement = g[1] == "" ? -1 : data.ElementNames.IndexOf(g[1]); // vide : on compte les segments
+                goalElement = g[1] == "" ? -1 : data.ElementNames.IndexOf(g[1]); // empty: count segments
                 goalTarget = int.Parse(g[2]);
                 goalClose = g.Length < 4 || g[3] != "form";
             }
@@ -133,8 +133,8 @@ namespace DorfSim
                     if (board.Goal != null && board.Goal.AnchorSegs.Length > 0)
                     {
                         QuestState gs = board.QuestStateOf(board.Goal);
-                        goalInfo = $", objectif {gs.Value} champs / {gs.Open} bords ouverts ({board.Goal.AnchorSegs.Length} segments)";
-                        // Pour chaque bord ouvert : part des tuiles connues qui peuvent s'y poser en le prolongeant
+                        goalInfo = $", goal {gs.Value} fields / {gs.Open} open edges ({board.Goal.AnchorSegs.Length} segments)";
+                        // For each open edge: share of known tiles that can be placed there, and that extend it
                         foreach (var (slot, dir) in board.OpenEdgeSlots(board.Goal.AnchorSegs))
                         {
                             int fit = 0, extend = 0;
@@ -151,15 +151,15 @@ namespace DorfSim
                                 if (anyFit) fit++;
                                 if (anyExtend) extend++;
                             }
-                            goalInfo += $"\n        case {slot} : {fit * 100 / 300}% des tuiles posables, {extend * 100 / 300}% prolongent le champ";
+                            goalInfo += $"\n        slot {slot}: {fit * 100 / 300}% of tiles fit, {extend * 100 / 300}% extend the field";
                         }
                     }
                     if (board.FlowerSite.HasValue)
                     {
                         Board.FlowerState fs = board.FlowerAt(board.FlowerSite.Value, GoalSample(pool, data));
-                        goalInfo += $", fleur {board.FlowerSite.Value} : anneau 1 {fs.Ring1}/6, anneau 2 {fs.Ring2}/12, centre {fs.CenterChance:0%}, terminable {fs.Completion:0.000}, quête {fs.QuestReadiness:0%}";
+                        goalInfo += $", flower {board.FlowerSite.Value}: ring 1 {fs.Ring1}/6, ring 2 {fs.Ring2}/12, center {fs.CenterChance:0%}, completable {fs.Completion:0.000}, quest {fs.QuestReadiness:0%}";
                     }
-                    Console.WriteLine($"   [{objective} #{seed}] {r.Placed} posées, pioche {stack}, {board.Quests.Count} quêtes, frontière {board.Frontier.Count()}{goalInfo}");
+                    Console.WriteLine($"   [{objective} #{seed}] {r.Placed} placed, stack {stack}, {board.Quests.Count} quests, frontier {board.Frontier.Count()}{goalInfo}");
                 }
                 while (upcoming.Count < 3) upcoming.Enqueue(Draw());
                 (TileSpec hand, RecordedTile handTile) = upcoming.Dequeue();
@@ -176,7 +176,7 @@ namespace DorfSim
                 }
                 else if (board.AtOnceKind == 2)
                 {
-                    // Terrain verrouillé tant que le groupe visé reste ouvert
+                    // Terrain stays locked while the targeted group remains open
                     int type = goalType >= 0 && goalAnchor >= 0 && board.IsSegOpen(goalAnchor) ? goalType : board.LargestOpenGroupType();
                     if (type != goalType) goalAnchor = -1;
                     if (type >= 0)
@@ -193,7 +193,7 @@ namespace DorfSim
                 {
                     board.Goal = new QuestModel
                     {
-                        Label = "objectif", Comparison = Comparison.MoreThan,
+                        Label = "goal", Comparison = Comparison.MoreThan,
                         Kind = goalElement >= 0 ? QuestKind.CountElements : QuestKind.CountSegments,
                         GroupType = (byte)goalType, ElementIndex = goalElement, Target = goalTarget,
                         AnchorSegs = board.SelectGoalGroup((byte)goalType, goalElement, GoalSample(pool, data), goalAnchor),
@@ -245,7 +245,7 @@ namespace DorfSim
                 r.Mismatched += ev.Mismatched;
                 stack += ev.TilesGained;
 
-                // Quêtes : la quête de la tuile posée s'ancre sur ses segments ; on retire les quêtes terminées.
+                // Quests: the placed tile's quest anchors to its segments; finished quests are removed.
                 var next = new List<QuestModel>();
                 foreach (QuestModel q in board.Quests)
                 {
@@ -267,8 +267,8 @@ namespace DorfSim
         }
 
         /// <summary>
-        /// Quête d'une tuile de quête, comme le jeu : objectif = plus grand groupe ouvert du même terrain
-        /// + incrément (tiré parmi les incréments observés en jeu, ou valeur par défaut).
+        /// Quest for a quest tile, as the game does it: target = largest open group of the same terrain
+        /// + increment (drawn from increments observed in-game, or a default value).
         /// </summary>
         private static QuestModel MakeQuest(Dataset data, Board board, RecordedTile t, TileSpec spec, System.Random rng, double scale)
         {
@@ -296,7 +296,7 @@ namespace DorfSim
             };
         }
 
-        /// <summary>Échantillon de tuiles pour estimer les perspectives (mêmes 40 tuiles que le solveur).</summary>
+        /// <summary>Tile sample used to estimate prospects (same 40 tiles as the solver).</summary>
         private static List<TileSpec> GoalSample(List<TileSpec> pool, Dataset data)
         {
             List<TileSpec> recent = pool.Skip(Math.Max(0, pool.Count - 80)).ToList();
@@ -309,22 +309,22 @@ namespace DorfSim
             double Avg(Func<GameResult, int> f) => results.Average(f);
             int[] placed = results.Select(x => x.Placed).OrderBy(x => x).ToArray();
             double sd = Math.Sqrt(results.Average(x => Math.Pow(x.Placed - Avg(y => y.Placed), 2)));
-            Console.WriteLine($"== {objective} ({results.Length} parties, {elapsed.TotalSeconds:0.0} s)");
-            Console.WriteLine($"   tuiles posées : moyenne {Avg(x => x.Placed):0.0} ± {sd / Math.Sqrt(results.Length):0.0} " +
-                              $"(médiane {placed[placed.Length / 2]}, min {placed[0]}, max {placed[^1]}, ≥250 : {placed.Count(x => x >= 250)})");
-            Console.WriteLine($"   par partie : {Avg(x => x.Perfects):0.0} placements parfaits, {Avg(x => x.QuestsDone):0.0} quêtes réussies, " +
-                              $"{Avg(x => x.QuestsFailed):0.0} ratées, {Avg(x => x.Mismatched):0.0} bords ratés, {Avg(x => x.Discarded):0.0} tuiles défaussées");
+            Console.WriteLine($"== {objective} ({results.Length} games, {elapsed.TotalSeconds:0.0} s)");
+            Console.WriteLine($"   tiles placed: mean {Avg(x => x.Placed):0.0} ± {sd / Math.Sqrt(results.Length):0.0} " +
+                              $"(median {placed[placed.Length / 2]}, min {placed[0]}, max {placed[^1]}, ≥250: {placed.Count(x => x >= 250)})");
+            Console.WriteLine($"   per game: {Avg(x => x.Perfects):0.0} perfect placements, {Avg(x => x.QuestsDone):0.0} quests completed, " +
+                              $"{Avg(x => x.QuestsFailed):0.0} failed, {Avg(x => x.Mismatched):0.0} mismatched edges, {Avg(x => x.Discarded):0.0} tiles discarded");
             if (results.Any(x => x.ManyDone > 0))
-                Console.WriteLine($"   plusieurs groupes : {Avg(x => x.ManyDone):0.0} groupes fermés assez grands par partie " +
-                                  $"({Avg(x => x.ManyDone) / Math.Max(1, Avg(x => x.Placed)) * 100:0.0} pour 100 tuiles)");
-            Console.WriteLine($"   record d'un coup : {Avg(x => x.MaxPerfectAtOnce):0.0} placements parfaits (max {results.Max(x => x.MaxPerfectAtOnce)}), " +
-                              $"{Avg(x => x.MaxPoints):0} points en une pose (max {results.Max(x => x.MaxPoints)})" +
-                              (results.Any(x => x.AtOnceReachedAt >= 0) || results.Any(x => x.MaxPoints > 0) ? $" ; défi réussi dans {results.Count(x => x.AtOnceReachedAt >= 0)}/{results.Length} parties" : ""));
+                Console.WriteLine($"   many groups: {Avg(x => x.ManyDone):0.0} large-enough groups closed per game " +
+                                  $"({Avg(x => x.ManyDone) / Math.Max(1, Avg(x => x.Placed)) * 100:0.0} per 100 tiles)");
+            Console.WriteLine($"   best single move: {Avg(x => x.MaxPerfectAtOnce):0.0} perfect placements (max {results.Max(x => x.MaxPerfectAtOnce)}), " +
+                              $"{Avg(x => x.MaxPoints):0} points from one placement (max {results.Max(x => x.MaxPoints)})" +
+                              (results.Any(x => x.AtOnceReachedAt >= 0) || results.Any(x => x.MaxPoints > 0) ? $"; challenge met in {results.Count(x => x.AtOnceReachedAt >= 0)}/{results.Length} games" : ""));
             int[] reached = results.Where(x => x.GoalReachedAt >= 0).Select(x => x.GoalReachedAt).OrderBy(x => x).ToArray();
             if (results.Any(x => x.GoalBestSize > 0 || x.GoalReachedAt >= 0))
-                Console.WriteLine($"   objectif : atteint dans {reached.Length}/{results.Length} parties" +
-                                  (reached.Length > 0 ? $", en {reached[reached.Length / 2]} tuiles (médiane)" : "") +
-                                  $" ; fermé trop tôt {results.Average(x => x.GoalClosedEarly):0.0} fois/partie ; plus grand groupe ciblé (échecs) : médiane {results.Where(x => x.GoalReachedAt < 0).Select(x => x.GoalBestSize).DefaultIfEmpty(0).OrderBy(x => x).ElementAt(results.Count(x => x.GoalReachedAt < 0) / 2)}");
+                Console.WriteLine($"   goal: reached in {reached.Length}/{results.Length} games" +
+                                  (reached.Length > 0 ? $", in {reached[reached.Length / 2]} tiles (median)" : "") +
+                                  $"; closed too early {results.Average(x => x.GoalClosedEarly):0.0} times/game; largest targeted group (failures): median {results.Where(x => x.GoalReachedAt < 0).Select(x => x.GoalBestSize).DefaultIfEmpty(0).OrderBy(x => x).ElementAt(results.Count(x => x.GoalReachedAt < 0) / 2)}");
             Console.WriteLine();
         }
 

@@ -1,4 +1,4 @@
-<!-- Simulateur hors jeu : rejoue des parties avec le modèle et le solveur du mod. -->
+<!-- Offline simulator: replays games using the mod's model and solver. -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -9,7 +9,7 @@
     <NoWarn>$(NoWarn);CS0649</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Code partagé avec le mod (sans dépendance à Unity) -->
+    <!-- Code shared with the mod (no Unity dependency) -->
     <Compile Include="../../src/DorfHelper/Model/Board.cs" Link="Shared/Board.cs" />
     <Compile Include="../../src/DorfHelper/Model/GameSnapshot.cs" Link="Shared/GameSnapshot.cs" />
     <Compile Include="../../src/DorfHelper/Solver.cs" Link="Shared/Solver.cs" />

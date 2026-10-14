@@ -1,4 +1,4 @@
-// Remplace les quelques types Unity utilisés par le code partagé (Vector2Int, Mathf).
+// Stands in for the few Unity types used by the shared code (Vector2Int, Mathf).
 using System;
 
 namespace UnityEngine

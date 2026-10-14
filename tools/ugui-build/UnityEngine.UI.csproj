@@ -1,4 +1,4 @@
-<!-- Recompile uGUI 1.0.0 (Unity 2021.3.45) en version "player", non allégée, pour UnityExplorer. -->
+<!-- Rebuilds uGUI 1.0.0 (Unity 2021.3.45) as a full, unstripped "player" build for UnityExplorer. -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>

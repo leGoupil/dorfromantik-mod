@@ -7,7 +7,7 @@ using UnityEngine;
 namespace DorfHelper
 {
     /// <summary>
-    /// Accès aux objets du jeu (trouvés dans la scène) et capture de l'état courant.
+    /// Access to game objects (found in the scene) and capture of the current state.
     /// </summary>
     internal class GameState
     {
@@ -23,14 +23,14 @@ namespace DorfHelper
 
         public bool IsReady => TilePlacer && SlotPreviewer && TileStack && QuestManager && World && InputRouter;
 
-        /// <summary>Cherche les composants du jeu dans la scène. Renvoie true s'ils sont tous trouvés.</summary>
+        /// <summary>Looks up the game components in the scene. Returns true if all of them are found.</summary>
         public bool TryResolve()
         {
             if (!TilePlacer) TilePlacer = UnityEngine.Object.FindObjectOfType<TilePlacer>();
             if (!SlotPreviewer) SlotPreviewer = UnityEngine.Object.FindObjectOfType<TileSlotPreviewer>();
             if (!TileStack) TileStack = UnityEngine.Object.FindObjectOfType<TileStack>();
-            // QuestManager est un ScriptableObject (asset), pas un composant de la scène :
-            // on le récupère via le champ privé de TilePlacer.
+            // QuestManager is a ScriptableObject (asset), not a scene component:
+            // fetch it through TilePlacer's private field.
             if (!QuestManager && TilePlacer) QuestManager = Traverse.Create(TilePlacer).Field("questManager").GetValue<QuestManager>();
             if (!World) World = UnityEngine.Object.FindObjectOfType<World>();
             if (!InputRouter && TilePlacer) InputRouter = Traverse.Create(TilePlacer).Field("inputRouter").GetValue<InputRouter>();
@@ -74,7 +74,7 @@ namespace DorfHelper
             catch (Exception) { return null; }
         }
 
-        /// <summary>Bords de la tuile dans sa rotation de base (Space.Self) : 6 listes de types de groupe.</summary>
+        /// <summary>Tile edges in its base rotation (Space.Self): 6 lists of group types.</summary>
         private static object DescribeTile(Tile tile)
         {
             var edges = new List<List<string>>();
@@ -109,18 +109,18 @@ namespace DorfHelper
             };
         }
 
-        /// <summary>L'AutoPlacer de debug laissé par les devs : existe-t-il dans la scène, et avec quels poids ?</summary>
+        /// <summary>The debug AutoPlacer left in by the devs: is it in the scene, and with which weights?</summary>
         public static string DescribeAutoPlacer()
         {
             var ap = UnityEngine.Object.FindObjectOfType<AutoPlacer>(true);
-            if (!ap) return "AutoPlacer absent de la scène";
+            if (!ap) return "AutoPlacer not found in the scene";
             var t = Traverse.Create(ap);
             string[] fields =
             {
                 "scorePerPerfectEdge", "penaltyPerUnfittingEdge", "scorePerQuestValue", "penaltyPerQuestFailed",
                 "scorePerQuestFulfilled", "tileStackCountToPrioritizeQuests",
             };
-            return "AutoPlacer trouvé (actif=" + ap.isActiveAndEnabled + ") : "
+            return "AutoPlacer found (active=" + ap.isActiveAndEnabled + "): "
                 + string.Join(", ", fields.Select(f => f + "=" + t.Field(f).GetValue()));
         }
     }

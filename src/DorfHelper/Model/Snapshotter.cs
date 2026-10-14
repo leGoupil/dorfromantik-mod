@@ -5,80 +5,80 @@ using UnityEngine;
 
 namespace DorfHelper.Model
 {
-    /// <summary>Partie Unity de la photo : lien vers les quêtes du jeu (pour l'auto-vérification).</summary>
+    /// <summary>Unity side of the snapshot: links to the game's quests (for self-checks).</summary>
     internal sealed partial class GameSnapshot
     {
         public Dictionary<QuestModel, QuestWatcher> QuestSources = new Dictionary<QuestModel, QuestWatcher>();
     }
 
-    /// <summary>Objectif de biome choisi par le joueur (ex. fermer un champ de 150 champs) et son état courant.</summary>
+    /// <summary>Biome goal chosen by the player (e.g. close a field group of 150 fields) and its current state.</summary>
     internal sealed class BiomeGoal
     {
-        public HashSet<Vector2Int> ExcludedFlowerSites = new HashSet<Vector2Int>(); // fleurs bloquées, à ne plus viser
+        public HashSet<Vector2Int> ExcludedFlowerSites = new HashSet<Vector2Int>(); // blocked flowers, no longer to be targeted
         public GroupTypeId GroupType = GroupTypeId.Agriculture;
-        public string Element = "Field"; // null ou vide : on compte les segments
+        public string Element = "Field"; // null or empty: count segments
         public int Target = 150;
-        public bool Close = true;        // fermer le groupe (CloseBigGroup) ou seulement l'atteindre (FormBigGroup)
-        public string Title;             // titre du défi du jeu, s'il vient de là
+        public bool Close = true;        // close the group (CloseBigGroup) or just reach the size (FormBigGroup)
+        public string Title;             // title of the game challenge, if it comes from there
 
-        // Mode "plusieurs groupes" (CloseManyGroups / FormManyGroups) : fermer Target groupes d'au moins GroupSize éléments
+        // "Many groups" mode (CloseManyGroups / FormManyGroups): close Target groups of at least GroupSize elements
         public bool Many;
         public int GroupSize;
-        public SessionQuest Source;      // défi du jeu (pour lire la progression)
-        public int Level = -1;           // palier visé (défis "d'un coup"), -1 : palier courant
+        public SessionQuest Source;      // game challenge (to read its progress)
+        public int Level = -1;           // targeted level ("at once" challenges), -1: current level
 
-        /// <summary>Le palier visé est-il validé dans le jeu ?</summary>
+        /// <summary>Has the targeted level been completed in the game?</summary>
         public bool SourceDone => Source && (Source.CurrentState == RewardState.Completed || (Level >= 0 && Source.CurrentLevelIndex > Level));
         public int GameProgress => Source ? Source.currentProgress : 0;
 
-        // Défis "d'un coup" : 1 = placements parfaits d'un coup, 2 = points en une pose (Target = nombre / points)
+        // "At once" challenges: 1 = perfect placements at once, 2 = points in a single placement (Target = count / points)
         public int AtOnceKind;
-        public int SegmentsNeeded; // défi points : taille de groupe (segments) dont la fermeture rapporte la cible
-        public int ProjectedPoints;      // défi points : points si le groupe visé était fermé maintenant (ou fleur complète)
-        public bool UsesFlower;          // défi points joué avec une fleur (les fermetures ne rapportent rien)
-        public int QuestsNeeded;         // quêtes que la tuile du centre doit réussir en plus de la fleur
-        public int ReservedQuests;       // quêtes touchant le centre, gardées pour la tuile finale
+        public int SegmentsNeeded; // points challenge: group size (segments) whose closing yields the target
+        public int ProjectedPoints;      // points challenge: points if the targeted group were closed now (or the flower completed)
+        public bool UsesFlower;          // points challenge played with a flower (closing groups yields nothing)
+        public int QuestsNeeded;         // quests the center tile must fulfill in addition to the flower
+        public int ReservedQuests;       // quests touching the center, kept for the final tile
 
-        // Suivi pour les cartes de défi (réinitialisé à chaque partie)
+        // Tracking for the challenge cards (reset every game)
         public List<(int placed, int value)> History = new List<(int, int)>();
-        public int MaxValue;             // plus grande valeur atteinte par le groupe visé dans la partie
-        public int StartProgress = -1;   // progression du défi du jeu au début de la partie (défis cumulés)
-        public int StackHeight;          // tuiles en pioche au moment de la photo
-        public Vector2Int? FlowerSite;   // défi placements parfaits : centre de la fleur en construction
+        public int MaxValue;             // highest value reached by the targeted group this game
+        public int StartProgress = -1;   // game challenge progress at the start of the game (cumulative challenges)
+        public int StackHeight;          // tiles in the stack at snapshot time
+        public Vector2Int? FlowerSite;   // perfect placements challenge: center of the flower under construction
         public Board.FlowerState Flower;
 
         public bool CountsSegments => string.IsNullOrEmpty(Element);
         public string Unit => CountsSegments ? "segments" : Element;
 
-        // Cible actuelle, mémorisée d'une photo à l'autre par (case, masque de bords) d'un de ses segments
+        // Current target, remembered across snapshots by (slot, edge mask) of one of its segments
         public (Vector2Int pos, int mask)? Anchor;
         public bool HasTarget, Achieved;
         public QuestState Current;
         public float Scale;
 
         public override string ToString() =>
-            (Title != null ? Title + " : " : "") + (AtOnceKind == 1 ? $"{Target} placements parfaits d'un coup"
-                : AtOnceKind == 2 ? $"{Target} points en une seule pose"
+            (Title != null ? Title + ": " : "") + (AtOnceKind == 1 ? $"{Target} perfect placements at once"
+                : AtOnceKind == 2 ? $"{Target} points in a single placement"
                 : Many
-                ? $"fermer {Target} groupes {GroupType} d'au moins {GroupSize} {Unit}"
-                : $"{(Close ? "fermer" : "former")} un groupe {GroupType} de {Target} {Unit}");
+                ? $"close {Target} {GroupType} groups of at least {GroupSize} {Unit}"
+                : $"{(Close ? "close" : "form")} a {GroupType} group of {Target} {Unit}");
     }
 
     internal static class Snapshotter
     {
         public static GameSnapshot Take(GameState state, int maxStack, BiomeGoal goal = null)
         {
-            // La tuile "en main" n'est exclue que si c'est bien un aperçu (juste après une pose,
-            // CurrentTile désigne encore la tuile posée pendant quelques frames).
+            // The "hand" tile is only excluded if it really is a preview (right after a placement,
+            // CurrentTile still points to the placed tile for a few frames).
             Tile current = state.TilePlacer.CurrentTile;
             if (current && current.State == TileState.placed) current = null;
-            // Quêtes actives sur le plateau + quête portée par la tuile en main (quel que soit son état).
+            // Active quests on the board + the quest carried by the hand tile (whatever its state).
             var watchers = (state.QuestManager.AllQuestWatchers ?? new List<QuestWatcher>())
                 .Where(q => q && ((q.Watching && q.State != TileState.topStackPreview)
                                   || (current && q.GetComponentInParent<QuestTile>() == current)))
                 .ToList();
 
-            // Types d'éléments suivis = ceux demandés par les quêtes de comptage
+            // Tracked element types = those requested by counting quests
             var elementIndex = new Dictionary<ElementType, int>();
             foreach (QuestWatcher q in watchers)
             {
@@ -87,7 +87,7 @@ namespace DorfHelper.Model
                 if (et && !elementIndex.ContainsKey(et)) elementIndex[et] = elementIndex.Count;
             }
 
-            // Élément compté par l'objectif de biome (ex. "Field"), retrouvé sur les tuiles posées
+            // Element counted by the biome goal (e.g. "Field"), looked up on placed tiles
             ElementType goalElement = null;
             if (goal != null && !goal.CountsSegments)
             {
@@ -100,7 +100,7 @@ namespace DorfHelper.Model
             }
 
             var board = new Board { ElementKinds = elementIndex.Count };
-            // Récompenses en tuiles, lues dans la config du jeu
+            // Tile rewards, read from the game config
             RewardSystemConfiguration rc = state.RewardSystem ? state.RewardSystem.Configuration : null;
             if (rc)
             {
@@ -119,7 +119,7 @@ namespace DorfHelper.Model
             var pool = new List<TileSpec>();
             var segIndex = new Dictionary<ElementGroupSegment, int>();
 
-            // Tuiles posées (les tuiles de quête "pré-placées" sont ajoutées plus bas comme fantômes).
+            // Placed tiles ("pre-placed" quest tiles are added further down as ghosts).
             var preplaced = HarmonyLib.Traverse.Create(state.SlotPreviewer).Field("preplacedTiles").GetValue<Dictionary<Vector2Int, Tile>>();
             var allTiles = state.World.GetAllPlacedTiles().ToList();
 
@@ -137,7 +137,7 @@ namespace DorfHelper.Model
                 foreach (Tile t in preplaced.Values.Where(t => t && state.World.GetTile(t.GridPos) == null))
                     board.AddGhost(SpecOf(t, elementIndex, board.Constraining), t.GridPos, t.RotationIndex);
 
-            // Les tuiles sont listées à peu près dans l'ordre de pose : on garde les plus récentes.
+            // Tiles are listed roughly in placement order: keep the most recent ones.
             const int PoolSize = 80;
             var snap = new GameSnapshot
             {
@@ -149,7 +149,7 @@ namespace DorfHelper.Model
             {
                 QuestModel model;
                 try { model = QuestOf(state, board, q, elementIndex); }
-                catch (System.Exception e) { Plugin.Log.LogWarning("Quête ignorée : " + e.Message); continue; }
+                catch (System.Exception e) { Plugin.Log.LogWarning("Quest skipped: " + e.Message); continue; }
                 if (model == null) continue;
                 board.Quests.Add(model);
                 snap.QuestSources[model] = q;
@@ -170,7 +170,7 @@ namespace DorfHelper.Model
                 goal.Achieved = goal.SourceDone;
                 if (goal.AtOnceKind == 1)
                 {
-                    // Placements parfaits d'un coup : fleur planifiée, conservée d'une photo à l'autre
+                    // Perfect placements at once: planned flower, kept across snapshots
                     List<TileSpec> sample = snap.Pool.Count <= 40 ? snap.Pool
                         : Enumerable.Range(0, 40).Select(i => snap.Pool[i * snap.Pool.Count / 40]).ToList();
                     board.ExcludedFlowerSites = goal.ExcludedFlowerSites;
@@ -178,8 +178,8 @@ namespace DorfHelper.Model
                     goal.FlowerSite = board.FlowerSite;
                     goal.Flower = board.FlowerSite.HasValue ? board.FlowerAt(board.FlowerSite.Value, sample) : default;
                 }
-                // Points en une pose, quand les fermetures de groupes ne rapportent rien (rewardCompletedGroups désactivé) :
-                // seule une fleur (7 placements parfaits) + une quête au centre peut atteindre la cible.
+                // Points in a single placement, when closing groups yields nothing (rewardCompletedGroups disabled):
+                // only a flower (7 perfect placements) + a quest at the center can reach the target.
                 goal.UsesFlower = goal.AtOnceKind == 2 && board.GroupClosingPoints(1000) == 0;
                 if (goal.UsesFlower)
                 {
@@ -198,8 +198,8 @@ namespace DorfHelper.Model
                 }
                 else if (goal.AtOnceKind == 2)
                 {
-                    // Points en une pose : faire grossir le plus grand groupe ouvert puis le fermer d'un coup.
-                    // Terrain verrouillé tant que le groupe visé reste ouvert.
+                    // Points in a single placement: grow the largest open group, then close it in one move.
+                    // Terrain is locked as long as the targeted group stays open.
                     int previous = goal.Anchor.HasValue ? board.FindSeg(goal.Anchor.Value.pos, (byte)goal.GroupType, goal.Anchor.Value.mask) : -1;
                     int type = previous >= 0 && board.IsSegOpen(previous) ? (int)goal.GroupType : board.LargestOpenGroupType();
                     if (type != (int)goal.GroupType) goal.Anchor = null;
@@ -256,10 +256,10 @@ namespace DorfHelper.Model
                 goal.Achieved = (goal.Close ? board.LargestClosedGroup(type, elemIdx) : board.LargestGroup(type, elemIdx)) >= goal.Target;
                 goal.Scale = board.GoalScale;
             }
-            // stack[0] est la tuile en main ; les suivantes commencent à 1
+            // stack[0] is the hand tile; the next ones start at 1
             for (int i = 1; i <= maxStack && i < state.TileStack.Height; i++)
             {
-                // Les tuiles du fond de la pioche ne sont pas encore construites (bords nuls) : on s'arrête là.
+                // Tiles at the bottom of the stack are not built yet (null edges): stop here.
                 Tile t = state.TileStack.GetStackedTile(i);
                 if (!t) break;
                 try { snap.Stack.Add(SpecOf(t, elementIndex, board.Constraining)); }
@@ -313,8 +313,8 @@ namespace DorfHelper.Model
         private static QuestModel QuestOf(GameState state, Board board, QuestWatcher q, Dictionary<ElementType, int> elementIndex)
         {
             if (!(q.GetConditionWatcher(0) is GroupConditionWatcher cw) || cw.Condition == null) return null;
-            // Quête qui ne surveille (plus) aucun groupe (terminée en attente, ou portée par une tuile de la pioche) :
-            // aucune pose ne peut la faire bouger, on l'ignore.
+            // Quest that watches no group (anymore) (completed and pending, or carried by a stack tile):
+            // no placement can change it, so skip it.
             if (cw.WatchedGroups == null || cw.WatchedGroups.Count == 0)
             {
                 QuestTile qt = q.GetComponentInParent<QuestTile>();
@@ -322,20 +322,20 @@ namespace DorfHelper.Model
             }
             QuestCondition c = cw.Condition;
 
-            // Ancres = segments des groupes surveillés, posés sur la tuile de quête (ou à défaut sur ses voisines).
-            // On ignore les segments de la tuile d'aperçu, qui peut avoir fusionné des groupes.
+            // Anchors = segments of the watched groups lying on the quest tile (or failing that, on its neighbors).
+            // Ignore the preview tile's segments, which may have merged groups.
             Tile currentTile = state.TilePlacer.CurrentTile;
             if (currentTile && currentTile.State == TileState.placed) currentTile = null;
             List<ElementGroupSegment> allWatched = (cw.WatchedGroups ?? new List<ElementGroup>())
                 .Where(g => g).SelectMany(g => g.Segments).Where(s => s && s.Tile).ToList();
             List<ElementGroupSegment> watched = allWatched.Where(s => s.Tile != currentTile).ToList();
-            // La tuile posée est un duplicata : on prend la QuestTile qui porte réellement ce watcher.
+            // The placed tile is a duplicate: take the QuestTile that actually carries this watcher.
             QuestTile questTile = q.GetComponentInParent<QuestTile>() ?? q.QuestTile;
             bool onHand = currentTile && (questTile == currentTile || q.QuestTile == currentTile);
             var anchors = watched.Where(s => s.Tile == questTile || s.Tile == q.QuestTile).ToList();
             if (anchors.Count == 0 && questTile && questTile.NeighborTiles != null)
                 anchors = watched.Where(s => s.Tile && questTile.NeighborTiles.Contains(s.Tile)).ToList();
-            if (anchors.Count == 0 && !onHand) anchors = watched; // dernier recours : tous les segments surveillés
+            if (anchors.Count == 0 && !onHand) anchors = watched; // last resort: all watched segments
             if (onHand) anchors.Clear();
 
             var model = new QuestModel
@@ -355,16 +355,16 @@ namespace DorfHelper.Model
             };
             if (onHand)
             {
-                // Quête de la tuile en main : ancrée sur ses propres segments (ceux surveillés dans l'aperçu).
+                // Hand tile quest: anchored on its own segments (those watched in the preview).
                 List<ElementGroupSegment> handSegs = currentTile.AllElementGroupSegments ?? new List<ElementGroupSegment>();
                 model.HandSegs = allWatched.Where(s => s.Tile == currentTile).Select(s => handSegs.IndexOf(s)).Where(i => i >= 0).Distinct().ToArray();
-                if (model.HandSegs.Length == 0) // aperçu pas encore posé sur une case : on prend les segments du bon type
+                if (model.HandSegs.Length == 0) // preview not on a slot yet: take the segments of the right type
                     model.HandSegs = Enumerable.Range(0, handSegs.Count).Where(i => handSegs[i] && handSegs[i].GroupType == c.groupType).ToArray();
                 return model.Kind == QuestKind.Unknown ? null : model;
             }
             if (model.AnchorSegs.Length == 0)
-                Plugin.Log.LogWarning($"Quête sans ancre [{model.Label}] : {cw.WatchedGroups?.Count ?? 0} groupes, " +
-                                      $"{watched.Count} segments surveillés, tuile de quête {(questTile ? questTile.GridPos.ToString() : "?")}");
+                Plugin.Log.LogWarning($"Quest without anchor [{model.Label}]: {cw.WatchedGroups?.Count ?? 0} groups, " +
+                                      $"{watched.Count} watched segments, quest tile {(questTile ? questTile.GridPos.ToString() : "?")}");
             return model.Kind == QuestKind.Unknown ? null : model;
         }
     }

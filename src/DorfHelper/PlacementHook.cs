@@ -3,7 +3,7 @@ using HarmonyLib;
 
 namespace DorfHelper
 {
-    /// <summary>Prévient le plugin juste AVANT que le jeu pose la tuile (aperçu encore sur sa case finale).</summary>
+    /// <summary>Notifies the plugin right BEFORE the game places the tile (preview still on its final slot).</summary>
     [HarmonyPatch(typeof(TilePlacer), nameof(TilePlacer.PlaceCurrentTile))]
     internal static class PlacementHook
     {

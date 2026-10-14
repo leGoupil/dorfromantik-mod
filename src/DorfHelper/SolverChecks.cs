@@ -7,16 +7,16 @@ namespace DorfHelper
 {
     internal partial class Suggestion
     {
-        public TileSlot Slot; // résolu sur le thread principal
+        public TileSlot Slot; // resolved on the main thread
     }
 
     internal static partial class Solver
     {
-        // ---------- Auto-vérifications (thread principal) ----------
+        // ---------- Self-checks (main thread) ----------
 
         /// <summary>
-        /// Compare le modèle avec le jeu, sur la tuile d'aperçu actuellement posée sur une case :
-        /// bords parfaits / vides, et valeur de chaque quête (le jeu l'a déjà recalculée avec l'aperçu).
+        /// Compares the model with the game, using the preview tile currently hovering over a slot:
+        /// perfect / empty edges, and each quest's value (the game has already recomputed it with the preview).
         /// </summary>
         public static string CheckAgainstPreview(GameState state, GameSnapshot snap)
         {
@@ -44,12 +44,12 @@ namespace DorfHelper
             var diffs = new List<string>();
             if (ours.Perfect != perfect || ours.Empty != empty)
             {
-                diffs.Add($"bords : nous {ours.Perfect} parfaits/{ours.Empty} vides, jeu {perfect}/{empty}");
+                diffs.Add($"edges: model {ours.Perfect} perfect/{ours.Empty} empty, game {perfect}/{empty}");
                 for (int i = 0; i < 6; i++)
                 {
                     Tile n = tile.GetNeighbor(i, Space.World);
-                    string game = n ? $"{n.GridPos} {n.name} rot{n.RotationIndex}: [{string.Join(",", n.GetEdgeTypes((i + 3) % 6, Space.World).Select(g => (int)g.id))}]" : "vide";
-                    diffs.Add($"  dir{i} modèle {snap.Board.DescribeNeighborEdge(slot.GridPos, i)} | jeu {game}");
+                    string game = n ? $"{n.GridPos} {n.name} rot{n.RotationIndex}: [{string.Join(",", n.GetEdgeTypes((i + 3) % 6, Space.World).Select(g => (int)g.id))}]" : "empty";
+                    diffs.Add($"  dir{i} model {snap.Board.DescribeNeighborEdge(slot.GridPos, i)} | game {game}");
                 }
             }
 
@@ -59,23 +59,23 @@ namespace DorfHelper
                 if (!snap.QuestSources.TryGetValue(q, out QuestWatcher w) || !w) continue;
                 QuestConditionWatcher cw = w.GetConditionWatcher(0);
                 if (cw == null) continue;
-                // CloseGroup : le jeu ne rafraîchit sa valeur qu'à l'ajout d'un segment ; on compare aux bords ouverts réels.
+                // CloseGroup: the game only refreshes its value when a segment is added; compare against the actual open edges.
                 int gameValue = q.Kind == QuestKind.CloseGroup && cw is GroupConditionWatcher closeWatcher && closeWatcher.WatchedGroups != null
                     ? closeWatcher.WatchedGroups.Where(g => g).Distinct().Sum(g => g.OpenEdges)
                     : cw.CurrentValue;
                 if (gameValue == questsAfter[i].Value) continue;
-                diffs.Add($"quête [{q.Label}] : nous {questsAfter[i].Value}, jeu {gameValue}");
+                diffs.Add($"quest [{q.Label}]: model {questsAfter[i].Value}, game {gameValue}");
                 if (q.Kind == QuestKind.CloseGroup && cw is GroupConditionWatcher gw && gw.WatchedGroups != null)
                 {
-                    // Diagnostic : groupes surveillés côté jeu (avec l'aperçu posé) et côté modèle (avant la pose)
-                    diffs.Add("  jeu : " + string.Join(", ", gw.WatchedGroups.Where(g => g).Select(g =>
-                        $"[{(g.GroupType ? g.GroupType.id.ToString() : "?")} ouverts {g.OpenEdges} segs {g.Segments.Count}" +
-                        $" hybrides {g.Segments.Count(sg => sg && sg.HybridSegment)}]")));
-                    diffs.Add("  modèle (avant pose) : " + snap.Board.DescribeAnchors(q.AnchorSegs));
+                    // Diagnostics: watched groups on the game side (with the preview in place) and on the model side (before placement)
+                    diffs.Add("  game: " + string.Join(", ", gw.WatchedGroups.Where(g => g).Select(g =>
+                        $"[{(g.GroupType ? g.GroupType.id.ToString() : "?")} open {g.OpenEdges} segs {g.Segments.Count}" +
+                        $" hybrid {g.Segments.Count(sg => sg && sg.HybridSegment)}]")));
+                    diffs.Add("  model (before placement): " + snap.Board.DescribeAnchors(q.AnchorSegs));
                 }
             }
 
-            return diffs.Count == 0 ? null : $"case {slot.GridPos} rot {tile.RotationIndex} → " + string.Join("\n", diffs);
+            return diffs.Count == 0 ? null : $"slot {slot.GridPos} rot {tile.RotationIndex} → " + string.Join("\n", diffs);
         }
     }
 }

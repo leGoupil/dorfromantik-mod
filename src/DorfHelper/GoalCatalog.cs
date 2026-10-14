@@ -8,8 +8,8 @@ using UnityEngine;
 namespace DorfHelper
 {
     /// <summary>
-    /// Défis "grand groupe" du jeu (quêtes de session qui débloquent biomes et succès) non encore accomplis,
-    /// proposés comme objectifs de biome : fermer (CloseBigGroup) ou former (FormBigGroup) un groupe de N éléments/segments.
+    /// The game's not-yet-completed "big group" challenges (session quests that unlock biomes and achievements),
+    /// offered as biome goals: close (CloseBigGroup) or form (FormBigGroup) a group of N elements/segments.
     /// </summary>
     internal static class GoalCatalog
     {
@@ -22,12 +22,12 @@ namespace DorfHelper
 
             foreach (SessionQuest q in quests.Where(q => q))
             {
-                // Défis "d'un coup" (D : placements parfaits, E : points en une pose)
+                // "At once" challenges (D: perfect placements, E: points in a single placement)
                 if (q is Dorfromantik.Challenge_PerfectPlacementsAtOnce || q is Dorfromantik.Challenge_ScorePerPlacement)
                 {
                     if (q.CurrentState == RewardState.Completed) continue;
-                    // Un palier par entrée : viser un palier supérieur valide aussi les inférieurs d'un coup
-                    // (le jeu enchaîne les validations tant que la valeur atteinte dépasse le palier suivant).
+                    // One level per entry: aiming for a higher level also completes the lower ones at once
+                    // (the game keeps validating levels as long as the reached value exceeds the next one).
                     for (int level = q.CurrentLevelIndex; level < q.LevelCount; level++)
                     {
                         string atOnceTitle = null;
@@ -53,7 +53,7 @@ namespace DorfHelper
                 else continue;
                 if (q.CurrentState == RewardState.Completed) continue;
 
-                // Champs communs aux trois classes (countTarget, groupType, elementType)
+                // Fields shared by the three classes (countTarget, groupType, elementType)
                 var t = Traverse.Create(q);
                 GroupType groupType = t.Field("groupType").GetValue<GroupType>();
                 CountTarget countTarget = t.Field("countTarget").GetValue<CountTarget>();
