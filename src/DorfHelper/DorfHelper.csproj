@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>DorfHelper</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GameDir>$(HOME)/Library/Application Support/Steam/steamapps/common/Dorfromantik</GameDir>
+    <ManagedDir>$(GameDir)/Dorfromantik.app/Contents/Resources/Data/Managed</ManagedDir>
+    <!-- Versions complètes des DLL Unity (le jeu les a allégées), chargées en priorité au runtime -->
+    <UnstrippedDir>$(GameDir)/BepInEx/unstripped_corlib</UnstrippedDir>
+    <PluginsDir>$(GameDir)/BepInEx/plugins</PluginsDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx" HintPath="$(GameDir)/BepInEx/core/BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(GameDir)/BepInEx/core/0Harmony.dll" Private="false" />
+    <Reference Include="Assembly-CSharp" HintPath="$(ManagedDir)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(UnstrippedDir)/UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(UnstrippedDir)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(ManagedDir)/Newtonsoft.Json.dll" Private="false" />
+    <Reference Include="Unity.InputSystem" HintPath="$(ManagedDir)/Unity.InputSystem.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(UnstrippedDir)/UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(UnstrippedDir)/UnityEngine.TextRenderingModule.dll" Private="false" />
+  </ItemGroup>
+
+  <!-- Copie automatique du plugin dans le jeu après chaque build -->
+  <Target Name="DeployToGame" AfterTargets="Build">
+    <MakeDir Directories="$(PluginsDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginsDir)" />
+  </Target>
+</Project>

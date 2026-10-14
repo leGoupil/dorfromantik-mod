@@ -1,0 +1,22 @@
+<!-- Recompile uGUI 1.0.0 (Unity 2021.3.45) en version "player", non allégée, pour UnityExplorer. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>UnityEngine.UI</AssemblyName>
+    <RootNamespace>UnityEngine.UI</RootNamespace>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <NoWarn>$(NoWarn);CS0618;CS0649;CS0414;CS0169;CS0108;CS0672</NoWarn>
+    <DefineConstants>PACKAGE_PHYSICS;PACKAGE_PHYSICS2D;PACKAGE_TILEMAP;PACKAGE_ANIMATION;PACKAGE_UITOOLKIT;UNITY_2021_3_OR_NEWER</DefineConstants>
+    <UnityEditorDir>/Applications/Unity/Hub/Editor/2021.3.45f1/Unity.app/Contents</UnityEditorDir>
+    <UguiSrc>$(UnityEditorDir)/Resources/PackageManager/BuiltInPackages/com.unity.ugui/Runtime</UguiSrc>
+    <EngineDir>$(UnityEditorDir)/PlaybackEngines/MacStandaloneSupport/Variations/mono/Managed</EngineDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(UguiSrc)/**/*.cs" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="$(EngineDir)/UnityEngine*.dll" Private="false" />
+  </ItemGroup>
+</Project>
